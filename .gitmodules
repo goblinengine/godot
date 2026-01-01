@@ -1,0 +1,4 @@
+[submodule "modules/goblin"]
+	path = modules/goblin
+	url = https://github.com/goblinengine/goblin
+	branch = main

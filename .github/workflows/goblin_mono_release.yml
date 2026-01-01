@@ -225,6 +225,30 @@ jobs:
           }
           Set-Content -Path version_config.txt -Value $config -NoNewline
 
+      - name: Patch Windows editor icon
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install Pillow
+          python - << 'PY'
+          from PIL import Image
+          import os
+
+          src = os.path.join('modules', 'goblin', 'icon.png')
+          img = Image.open(src).convert('RGBA')
+          sizes = [(256, 256), (128, 128), (64, 64), (48, 48), (32, 32), (16, 16)]
+          img.save('goblin.ico', sizes=sizes)
+          print('Wrote goblin.ico')
+          PY
+
+          Invoke-WebRequest -Uri "https://github.com/electron/rcedit/releases/download/v2.0.0/rcedit-x64.exe" -OutFile "rcedit.exe"
+
+          $targets = Get-ChildItem -Path bin -Filter "*.exe" | Where-Object { $_.Name -match "windows\.editor" -and $_.Name -match "mono" }
+          if (-not $targets) { throw "No windows mono editor exe(s) found to patch." }
+          foreach ($t in $targets) {
+            & .\rcedit.exe $t.FullName --set-icon goblin.ico
+          }
+
       - name: Upload version config
         uses: actions/upload-artifact@v4
         with:
@@ -335,6 +359,25 @@ jobs:
             Copy-Item -Recurse -Force bin\GodotSharp out\GodotSharp
           }
 
+      - name: Patch Windows template icon
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install Pillow
+          python - << 'PY'
+          from PIL import Image
+          import os
+
+          src = os.path.join('modules', 'goblin', 'icon.png')
+          img = Image.open(src).convert('RGBA')
+          sizes = [(256, 256), (128, 128), (64, 64), (48, 48), (32, 32), (16, 16)]
+          img.save('goblin.ico', sizes=sizes)
+          print('Wrote goblin.ico')
+          PY
+
+          Invoke-WebRequest -Uri "https://github.com/electron/rcedit/releases/download/v2.0.0/rcedit-x64.exe" -OutFile "rcedit.exe"
+          & .\rcedit.exe (Resolve-Path out\windows_release_x86_64.exe) --set-icon (Resolve-Path goblin.ico)
+
       - name: Upload windows templates payload
         uses: actions/upload-artifact@v4
         with:
@@ -412,9 +455,9 @@ jobs:
         shell: bash
         run: |
           mkdir -p out
-          tmpl=$(ls -1 bin/godot.linuxbsd.template_release.* 2>/dev/null | head -n1)
+          tmpl=$(ls -1 bin/godot.linuxbsd.template_release.x86_64* 2>/dev/null | head -n1)
           if [ -z "$tmpl" ]; then
-            echo "::error::Could not find a linux template_release binary in ./bin"
+            echo "::error::Could not find a linux template_release x86_64 binary in ./bin"
             exit 1
           fi
           cp "$tmpl" out/linux_release.x86_64
@@ -503,7 +546,6 @@ jobs:
           mkdir -p out
           zipfile=$(ls -1 bin/godot_*macos*mono*.zip 2>/dev/null | head -n1)
           if [ -z "$zipfile" ]; then
-            # Fallback for slightly different naming.
             zipfile=$(ls -1 bin/*.zip 2>/dev/null | head -n1)
           fi
           if [ -z "$zipfile" ]; then
@@ -544,12 +586,10 @@ jobs:
           mkdir -p tpz
           echo "$version" > tpz/version.txt
 
-          # Expected template filenames used by export plugins.
           cp payloads/templates-windows/windows_release_x86_64.exe tpz/windows_release_x86_64.exe
           cp payloads/templates-linux/linux_release.x86_64 tpz/linux_release.x86_64
           cp payloads/templates-macos/macos.zip tpz/macos.zip
 
-          # Optional managed runtime payloads.
           if [ -d payloads/templates-windows/GodotSharp ]; then
             cp -R payloads/templates-windows/GodotSharp tpz/GodotSharp
           elif [ -d payloads/templates-linux/GodotSharp ]; then

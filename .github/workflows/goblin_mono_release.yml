@@ -1,4 +1,4 @@
-name: "👾 Goblin: Mono Release (manual)"
+name: "👾 Goblin Builds (manual)"
 
 on:
   workflow_dispatch:
@@ -18,10 +18,8 @@ env:
 
 jobs:
   prepare:
-    name: "Prepare (update goblin submodule)"
+    name: "Prepare (update all submodules)"
     runs-on: ubuntu-22.04
-    outputs:
-      goblin_sha: ${{ steps.goblin.outputs.goblin_sha }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -42,15 +40,11 @@ jobs:
             exit 1
           fi
 
-      - name: Update goblin submodule to latest main
-        id: goblin
+      - name: Update all submodules to latest
         shell: bash
         run: |
           git submodule sync --recursive
-          git submodule update --init --recursive modules/goblin
-          git -C modules/goblin fetch origin main
-          git -C modules/goblin checkout --detach origin/main
-          echo "goblin_sha=$(git -C modules/goblin rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          git submodule update --init --recursive --remote
 
       - name: Persist submodule pointer (optional)
         if: ${{ inputs.persist_submodule_update && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
@@ -58,8 +52,8 @@ jobs:
         run: |
           git config user.email "action@github.com"
           git config user.name "GitHub Action"
-          git add .gitmodules modules/goblin
-          git commit -m "chore: update goblin submodule" || true
+          git add .gitmodules modules/
+          git commit -m "chore: update all submodules" || true
           git push || true
 
   generate-glue:
@@ -71,12 +65,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
-
-      - name: Checkout goblin SHA
-        shell: bash
-        run: |
-          git -C modules/goblin fetch origin main
-          git -C modules/goblin checkout --detach "${{ needs.prepare.outputs.goblin_sha }}"
 
       - name: Setup dependencies
         run: |
@@ -161,12 +149,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
-
-      - name: Checkout goblin SHA
-        shell: bash
-        run: |
-          git -C modules/goblin fetch origin main
-          git -C modules/goblin checkout --detach "${{ needs.prepare.outputs.goblin_sha }}"
 
       - name: Download mono glue
         uses: actions/download-artifact@v4
@@ -296,12 +278,6 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Checkout goblin SHA
-        shell: bash
-        run: |
-          git -C modules/goblin fetch origin main
-          git -C modules/goblin checkout --detach "${{ needs.prepare.outputs.goblin_sha }}"
-
       - name: Download mono glue
         uses: actions/download-artifact@v4
         with:
@@ -419,12 +395,6 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Checkout goblin SHA
-        shell: bash
-        run: |
-          git -C modules/goblin fetch origin main
-          git -C modules/goblin checkout --detach "${{ needs.prepare.outputs.goblin_sha }}"
-
       - name: Download mono glue
         uses: actions/download-artifact@v4
         with:
@@ -506,12 +476,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
-
-      - name: Checkout goblin SHA
-        shell: bash
-        run: |
-          git -C modules/goblin fetch origin main
-          git -C modules/goblin checkout --detach "${{ needs.prepare.outputs.goblin_sha }}"
 
       - name: Download mono glue
         uses: actions/download-artifact@v4

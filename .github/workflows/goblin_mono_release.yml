@@ -1,10 +1,10 @@
-name: 👾 Goblin: Mono Release (manual)
+name: "👾 Goblin: Mono Release (manual)"
 
 on:
   workflow_dispatch:
     inputs:
       persist_submodule_update:
-        description: Commit/push updated Goblin submodule pointer to master
+        description: "Commit/push updated Goblin submodule pointer to master"
         type: boolean
         default: false
 
@@ -18,7 +18,7 @@ env:
 
 jobs:
   prepare:
-    name: Prepare (update goblin submodule)
+    name: "Prepare (update goblin submodule)"
     runs-on: ubuntu-22.04
     outputs:
       goblin_sha: ${{ steps.goblin.outputs.goblin_sha }}
@@ -63,7 +63,7 @@ jobs:
           git push || true
 
   generate-glue:
-    name: Generate Mono glue (linux)
+    name: "Generate Mono glue (linux)"
     runs-on: ubuntu-22.04
     needs: prepare
     steps:
@@ -152,7 +152,7 @@ jobs:
           path: modules/mono/glue
 
   windows-editor:
-    name: Windows mono editor (release)
+    name: "Windows mono editor (release)"
     runs-on: windows-latest
     needs: [prepare, generate-glue]
     timeout-minutes: 180
@@ -286,7 +286,7 @@ jobs:
           path: bin/
 
   windows-templates:
-    name: Windows mono templates (release)
+    name: "Windows mono templates (release)"
     runs-on: windows-latest
     needs: [prepare, generate-glue]
     timeout-minutes: 180
@@ -409,7 +409,7 @@ jobs:
           path: out/
 
   linux-templates:
-    name: Linux mono templates (release)
+    name: "Linux mono templates (release)"
     runs-on: ubuntu-22.04
     needs: [prepare, generate-glue]
     timeout-minutes: 180
@@ -497,7 +497,7 @@ jobs:
           path: out/
 
   macos-templates:
-    name: macOS mono templates (release)
+    name: "macOS mono templates (release)"
     runs-on: macos-latest
     needs: [prepare, generate-glue]
     timeout-minutes: 180
@@ -585,7 +585,7 @@ jobs:
           path: out/
 
   package-tpz:
-    name: Package export templates (.tpz)
+    name: "Package export templates (.tpz)"
     runs-on: ubuntu-22.04
     needs: [windows-templates, linux-templates, macos-templates, windows-editor]
     steps:

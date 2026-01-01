@@ -121,24 +121,28 @@ jobs:
         run: |
           set -euo pipefail
 
-          echo "Contents of ./bin after build:"
-          ls -la ./bin || true
+          echo "Listing ./bin directory:"
+          ls -lah ./bin/ || { echo "::error::bin/ directory does not exist"; exit 1; }
 
-          # Prefer an explicit Mono editor binary if present.
-          editor=$(ls -1 ./bin/godot.linuxbsd.editor.*x86_64* 2>/dev/null | grep -E '\.mono(\.|$)' | head -n1 || true)
+          # Goblin module renames binaries from 'godot' to 'goblin'
+          # Expected: goblin.linuxbsd.editor.x86_64.mono
+          editor=$(find ./bin -maxdepth 1 -type f -name "goblin.linuxbsd.editor.*" -executable 2>/dev/null | grep -i mono | head -n1 || true)
 
-          # Fallback: some configurations may not include the .mono suffix even with Mono enabled.
           if [ -z "${editor}" ]; then
-            editor=$(ls -1 ./bin/godot.linuxbsd.editor.*x86_64* 2>/dev/null | head -n1 || true)
+            echo "No goblin mono-specific binary found, trying any goblin linuxbsd editor binary..."
+            editor=$(find ./bin -maxdepth 1 -type f -name "goblin.linuxbsd.editor.*" -executable 2>/dev/null | head -n1 || true)
           fi
 
           if [ -z "${editor}" ]; then
-            echo "::error::Could not find a Linux editor binary in ./bin (expected something like godot.linuxbsd.editor.*x86_64*)."
+            echo "::error::Could not find a Goblin Linux editor binary in ./bin"
+            echo "::error::Expected files matching: goblin.linuxbsd.editor.*"
+            echo "::error::Available files in bin/:"
+            ls -la ./bin/ || true
             exit 1
           fi
 
           echo "Using editor binary: ${editor}"
-          chmod +x "${editor}" || true
+          chmod +x "${editor}"
           "${editor}" --headless --generate-mono-glue ./modules/mono/glue
 
       - name: Upload glue artifact
@@ -235,8 +239,8 @@ jobs:
       - name: Extract version config for templates
         shell: pwsh
         run: |
-          $editor = Get-ChildItem -Path bin -Filter "*.exe" | Where-Object { $_.Name -match "windows\.editor" -and $_.Name -match "mono" } | Select-Object -First 1
-          if (-not $editor) { throw "Could not find a windows mono editor executable in ./bin" }
+          $editor = Get-ChildItem -Path bin -Filter "*.exe" | Where-Object { $_.Name -match "goblin" -and $_.Name -match "windows\.editor" -and $_.Name -match "mono" } | Select-Object -First 1
+          if (-not $editor) { throw "Could not find a goblin windows mono editor executable in ./bin" }
           $ver = & $editor.FullName --version
           if ($ver -match "v([^ ]+)") {
             $config = $Matches[1]
@@ -263,8 +267,8 @@ jobs:
 
           Invoke-WebRequest -Uri "https://github.com/electron/rcedit/releases/download/v2.0.0/rcedit-x64.exe" -OutFile "rcedit.exe"
 
-          $targets = Get-ChildItem -Path bin -Filter "*.exe" | Where-Object { $_.Name -match "windows\.editor" -and $_.Name -match "mono" }
-          if (-not $targets) { throw "No windows mono editor exe(s) found to patch." }
+          $targets = Get-ChildItem -Path bin -Filter "*.exe" | Where-Object { $_.Name -match "goblin" -and $_.Name -match "windows\.editor" -and $_.Name -match "mono" }
+          if (-not $targets) { throw "No goblin windows mono editor exe(s) found to patch." }
           foreach ($t in $targets) {
             & .\rcedit.exe $t.FullName --set-icon goblin.ico
           }
@@ -369,11 +373,11 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path out | Out-Null
-          $tmpl = Get-ChildItem -Path bin -Filter "*.exe" | Where-Object { $_.Name -match "windows\.template_release\.x86_64" -and $_.Name -notmatch "\.console\.exe$" } | Select-Object -First 1
+          $tmpl = Get-ChildItem -Path bin -Filter "*.exe" | Where-Object { $_.Name -match "goblin" -and $_.Name -match "windows\.template_release\.x86_64" -and $_.Name -notmatch "\.console\.exe$" } | Select-Object -First 1
           if (-not $tmpl) {
-            $tmpl = Get-ChildItem -Path bin -Filter "*.exe" | Where-Object { $_.Name -match "windows\.template_release\.x86_64" } | Select-Object -First 1
+            $tmpl = Get-ChildItem -Path bin -Filter "*.exe" | Where-Object { $_.Name -match "goblin" -and $_.Name -match "windows\.template_release\.x86_64" } | Select-Object -First 1
           }
-          if (-not $tmpl) { throw "Could not find a windows template_release exe in ./bin" }
+          if (-not $tmpl) { throw "Could not find a goblin windows template_release exe in ./bin" }
           Copy-Item $tmpl.FullName out\windows_release_x86_64.exe -Force
           if (Test-Path bin\GodotSharp) {
             Copy-Item -Recurse -Force bin\GodotSharp out\GodotSharp
@@ -475,9 +479,9 @@ jobs:
         shell: bash
         run: |
           mkdir -p out
-          tmpl=$(ls -1 bin/godot.linuxbsd.template_release.x86_64* 2>/dev/null | head -n1)
+          tmpl=$(ls -1 bin/goblin.linuxbsd.template_release.x86_64* 2>/dev/null | head -n1)
           if [ -z "$tmpl" ]; then
-            echo "::error::Could not find a linux template_release x86_64 binary in ./bin"
+            echo "::error::Could not find a goblin linux template_release x86_64 binary in ./bin"
             exit 1
           fi
           cp "$tmpl" out/linux_release.x86_64
@@ -564,7 +568,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p out
-          zipfile=$(ls -1 bin/godot_*macos*mono*.zip 2>/dev/null | head -n1)
+          zipfile=$(ls -1 bin/goblin_*macos*mono*.zip 2>/dev/null | head -n1)
           if [ -z "$zipfile" ]; then
             zipfile=$(ls -1 bin/*.zip 2>/dev/null | head -n1)
           fi

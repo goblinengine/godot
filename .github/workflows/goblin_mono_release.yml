@@ -119,7 +119,13 @@ jobs:
 
       - name: Generate mono glue
         run: |
-          ./bin/godot.linuxbsd.editor.x86_64.mono --headless --generate-mono-glue ./modules/mono/glue
+          editor=$(ls -1 bin/godot.linuxbsd.editor.x86_64* 2>/dev/null | grep -E '\.mono(\.|$)' | head -n1)
+          if [ -z "$editor" ]; then
+            echo "::error::Could not find a linux mono editor binary in ./bin"
+            exit 1
+          fi
+          chmod +x "$editor"
+          "$editor" --headless --generate-mono-glue ./modules/mono/glue
 
       - name: Upload glue artifact
         uses: actions/upload-artifact@v4

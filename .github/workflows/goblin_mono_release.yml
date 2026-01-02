@@ -238,14 +238,14 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install Pillow
           $py = @'
-from PIL import Image
-import os
+          from PIL import Image
+          import os
 
-src = os.path.join('modules', 'goblin', 'icon.png')
-img = Image.open(src).convert('RGBA')
-sizes = [(256, 256), (128, 128), (64, 64), (48, 48), (32, 32), (16, 16)]
-img.save('goblin.ico', sizes=sizes)
-print('Wrote goblin.ico')
+          src = os.path.join('modules', 'goblin', 'icon.png')
+          img = Image.open(src).convert('RGBA')
+          sizes = [(256, 256), (128, 128), (64, 64), (48, 48), (32, 32), (16, 16)]
+          img.save('goblin.ico', sizes=sizes)
+          print('Wrote goblin.ico')
 @'
           python -c "$py"
 
@@ -367,14 +367,14 @@ print('Wrote goblin.ico')
           python -m pip install --upgrade pip
           python -m pip install Pillow
           $py = @'
-from PIL import Image
-import os
+          from PIL import Image
+          import os
 
-src = os.path.join('modules', 'goblin', 'icon.png')
-img = Image.open(src).convert('RGBA')
-sizes = [(256, 256), (128, 128), (64, 64), (48, 48), (32, 32), (16, 16)]
-img.save('goblin.ico', sizes=sizes)
-print('Wrote goblin.ico')
+          src = os.path.join('modules', 'goblin', 'icon.png')
+          img = Image.open(src).convert('RGBA')
+          sizes = [(256, 256), (128, 128), (64, 64), (48, 48), (32, 32), (16, 16)]
+          img.save('goblin.ico', sizes=sizes)
+          print('Wrote goblin.ico')
 @'
           python -c "$py"
 

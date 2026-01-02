@@ -237,16 +237,17 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install Pillow
-          python - << 'PY'
-          from PIL import Image
-          import os
+          $py = @'
+from PIL import Image
+import os
 
-          src = os.path.join('modules', 'goblin', 'icon.png')
-          img = Image.open(src).convert('RGBA')
-          sizes = [(256, 256), (128, 128), (64, 64), (48, 48), (32, 32), (16, 16)]
-          img.save('goblin.ico', sizes=sizes)
-          print('Wrote goblin.ico')
-          PY
+src = os.path.join('modules', 'goblin', 'icon.png')
+img = Image.open(src).convert('RGBA')
+sizes = [(256, 256), (128, 128), (64, 64), (48, 48), (32, 32), (16, 16)]
+img.save('goblin.ico', sizes=sizes)
+print('Wrote goblin.ico')
+@'
+          python -c "$py"
 
           Invoke-WebRequest -Uri "https://github.com/electron/rcedit/releases/download/v2.0.0/rcedit-x64.exe" -OutFile "rcedit.exe"
 
@@ -365,16 +366,17 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install Pillow
-          python - << 'PY'
-          from PIL import Image
-          import os
+          $py = @'
+from PIL import Image
+import os
 
-          src = os.path.join('modules', 'goblin', 'icon.png')
-          img = Image.open(src).convert('RGBA')
-          sizes = [(256, 256), (128, 128), (64, 64), (48, 48), (32, 32), (16, 16)]
-          img.save('goblin.ico', sizes=sizes)
-          print('Wrote goblin.ico')
-          PY
+src = os.path.join('modules', 'goblin', 'icon.png')
+img = Image.open(src).convert('RGBA')
+sizes = [(256, 256), (128, 128), (64, 64), (48, 48), (32, 32), (16, 16)]
+img.save('goblin.ico', sizes=sizes)
+print('Wrote goblin.ico')
+@'
+          python -c "$py"
 
           Invoke-WebRequest -Uri "https://github.com/electron/rcedit/releases/download/v2.0.0/rcedit-x64.exe" -OutFile "rcedit.exe"
           & .\rcedit.exe (Resolve-Path out\windows_release_x86_64.exe) --set-icon (Resolve-Path goblin.ico)

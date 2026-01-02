@@ -2,8 +2,3 @@
 	path = modules/goblin
 	url = https://github.com/goblinengine/goblin
 	branch = main
-
-[submodule "modules/godot_das"]
-	path = modules/godot_das
-	url = https://github.com/goblinengine/godot-das
-	branch = master

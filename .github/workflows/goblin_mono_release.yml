@@ -223,8 +223,9 @@ jobs:
         run: |
           $editor = Get-ChildItem -Path bin -Filter "*.exe" | Where-Object { $_.Name -match "goblin" -and $_.Name -match "windows\.editor" -and $_.Name -match "mono" } | Select-Object -First 1
           if (-not $editor) { throw "Could not find a goblin windows mono editor executable in ./bin" }
-          $ver = & $editor.FullName --version
-          if ($ver -match "v([^ ]+)") {
+          $ver = (& $editor.FullName --version).Trim()
+          if ([string]::IsNullOrWhiteSpace($ver)) { throw "Editor version output is empty" }
+          if ($ver -match "^v?([^ ]+)") {
             $config = $Matches[1]
           } else {
             throw "Could not parse version from: $ver"

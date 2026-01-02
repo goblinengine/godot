@@ -2,3 +2,7 @@
 	path = modules/goblin
 	url = https://github.com/goblinengine/goblin
 	branch = main
+[submodule "modules/gdscript2"]
+	path = modules/gdscript2
+	url = https://github.com/goblinengine/gdscript2
+	branch = main

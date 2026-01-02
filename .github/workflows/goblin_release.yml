@@ -13,8 +13,6 @@ permissions:
 
 env:
   PYTHONIOENCODING: utf8
-  DOTNET_NOLOGO: true
-  DOTNET_CLI_TELEMETRY_OPTOUT: true
 
 jobs:
   prepare:
@@ -56,93 +54,10 @@ jobs:
           git commit -m "chore: update all submodules" || true
           git push || true
 
-  generate-glue:
-    name: "Generate Mono glue (linux)"
-    runs-on: ubuntu-22.04
-    needs: prepare
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Setup dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install libwayland-bin
-
-      - name: Setup Python and SCons
-        uses: ./.github/actions/godot-deps
-
-      - name: Force remove preinstalled .NET SDKs
-        run: sudo rm -rf /usr/share/dotnet/sdk/*
-
-      - name: Setup older .NET SDK as baseline
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 8.0.100
-
-      - name: Download pre-built AccessKit
-        uses: dsaltares/fetch-gh-release-asset@1.1.2
-        with:
-          repo: AccessKit/accesskit-c
-          version: tags/0.18.0
-          file: accesskit-c-0.18.0.zip
-          target: accesskit-c-0.18.0/accesskit_c.zip
-
-      - name: Extract pre-built AccessKit
-        run: unzip -o accesskit-c-0.18.0/accesskit_c.zip
-
-      - name: Build linux editor (mono) for glue generation
-        uses: ./.github/actions/godot-build
-        with:
-          platform: linuxbsd
-          target: editor
-          scons-flags: >-
-            dev_mode=no
-            debug_symbols=no
-            module_text_server_fb_enabled=yes
-            module_mono_enabled=yes
-            "accesskit_sdk_path=${{ github.workspace }}/accesskit-c-0.18.0/"
-
-      - name: Generate mono glue
-        run: |
-          set -euo pipefail
-
-          echo "Listing ./bin directory:"
-          ls -lah ./bin/ || { echo "::error::bin/ directory does not exist"; exit 1; }
-
-          # Goblin module renames binaries from 'godot' to 'goblin'
-          # Expected: goblin.linuxbsd.editor.x86_64.mono
-          editor=$(find ./bin -maxdepth 1 -type f -name "goblin.linuxbsd.editor.*" -executable 2>/dev/null | grep -i mono | head -n1 || true)
-
-          if [ -z "${editor}" ]; then
-            echo "No goblin mono-specific binary found, trying any goblin linuxbsd editor binary..."
-            editor=$(find ./bin -maxdepth 1 -type f -name "goblin.linuxbsd.editor.*" -executable 2>/dev/null | head -n1 || true)
-          fi
-
-          if [ -z "${editor}" ]; then
-            echo "::error::Could not find a Goblin Linux editor binary in ./bin"
-            echo "::error::Expected files matching: goblin.linuxbsd.editor.*"
-            echo "::error::Available files in bin/:"
-            ls -la ./bin/ || true
-            exit 1
-          fi
-
-          echo "Using editor binary: ${editor}"
-          chmod +x "${editor}"
-          "${editor}" --headless --generate-mono-glue ./modules/mono/glue
-
-      - name: Upload glue artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: mono-glue
-          path: modules/mono/glue
-
   windows-editor:
-    name: "Windows mono editor (release)"
+    name: "Windows editor (GDScript2)"
     runs-on: windows-latest
-    needs: [prepare, generate-glue]
+    needs: [prepare]
     timeout-minutes: 180
     steps:
       - name: Checkout
@@ -150,19 +65,8 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Download mono glue
-        uses: actions/download-artifact@v4
-        with:
-          name: mono-glue
-          path: modules/mono/glue
-
       - name: Setup Python and SCons
         uses: ./.github/actions/godot-deps
-
-      - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 8.0.100
 
       - name: Download Direct3D 12 SDK components
         shell: sh
@@ -198,7 +102,7 @@ jobs:
       - name: Extract pre-built AccessKit
         run: unzip -o accesskit-c-0.18.0/accesskit_c.zip
 
-      - name: Build windows editor (mono)
+      - name: Build windows editor (GDScript2)
         uses: ./.github/actions/godot-build
         with:
           platform: windows
@@ -207,22 +111,19 @@ jobs:
             dev_mode=no
             debug_symbols=no
             module_text_server_fb_enabled=yes
-            module_mono_enabled=yes
+            module_mono_enabled=no
+            module_gdscript_enabled=no
+            module_gdscript2_enabled=yes
             windows_subsystem=console
             d3d12=${{ steps.d3d12-sdk.outputs.D3D12_ENABLED }}
             "angle_libs=${{ github.workspace }}/"
             "accesskit_sdk_path=${{ github.workspace }}/accesskit-c-0.18.0/"
 
-      - name: Build .NET assemblies
-        run: |
-          dotnet --info
-          python ./modules/mono/build_scripts/build_assemblies.py --godot-output-dir=./bin --godot-platform=windows --werror
-
       - name: Extract version config for templates
         shell: pwsh
         run: |
-          $editor = Get-ChildItem -Path bin -Filter "*.exe" | Where-Object { $_.Name -match "goblin" -and $_.Name -match "windows\.editor" -and $_.Name -match "mono" } | Select-Object -First 1
-          if (-not $editor) { throw "Could not find a goblin windows mono editor executable in ./bin" }
+          $editor = Get-ChildItem -Path bin -Filter "*.exe" | Where-Object { $_.Name -match "goblin" -and $_.Name -match "windows\.editor" -and $_.Name -notmatch "template" } | Select-Object -First 1
+          if (-not $editor) { throw "Could not find a goblin windows editor executable in ./bin" }
           $ver = (& $editor.FullName --version).Trim()
           if ([string]::IsNullOrWhiteSpace($ver)) { throw "Editor version output is empty" }
           if ($ver -match "^v?([^ ]+)") {
@@ -241,8 +142,8 @@ jobs:
 
           Invoke-WebRequest -Uri "https://github.com/electron/rcedit/releases/download/v2.0.0/rcedit-x64.exe" -OutFile "rcedit.exe"
 
-          $targets = Get-ChildItem -Path bin -Filter "*.exe" | Where-Object { $_.Name -match "goblin" -and $_.Name -match "windows\.editor" -and $_.Name -match "mono" }
-          if (-not $targets) { throw "No goblin windows mono editor exe(s) found to patch." }
+          $targets = Get-ChildItem -Path bin -Filter "*.exe" | Where-Object { $_.Name -match "goblin" -and $_.Name -match "windows\.editor" -and $_.Name -notmatch "template" }
+          if (-not $targets) { throw "No goblin windows editor exe(s) found to patch." }
           foreach ($t in $targets) {
             & .\rcedit.exe $t.FullName --set-icon goblin.ico
           }
@@ -253,16 +154,16 @@ jobs:
           name: version-config
           path: version_config.txt
 
-      - name: Upload windows mono editor artifact
+      - name: Upload windows editor artifact
         uses: actions/upload-artifact@v4
         with:
-          name: windows-editor-mono
+          name: windows-editor-gdscript2
           path: bin/
 
   windows-templates:
-    name: "Windows mono templates (release)"
+    name: "Windows templates (GDScript2)"
     runs-on: windows-latest
-    needs: [prepare, generate-glue]
+    needs: [prepare]
     timeout-minutes: 180
     steps:
       - name: Checkout
@@ -270,19 +171,8 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Download mono glue
-        uses: actions/download-artifact@v4
-        with:
-          name: mono-glue
-          path: modules/mono/glue
-
       - name: Setup Python and SCons
         uses: ./.github/actions/godot-deps
-
-      - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 8.0.100
 
       - name: Download Direct3D 12 SDK components
         shell: sh
@@ -318,12 +208,7 @@ jobs:
       - name: Extract pre-built AccessKit
         run: unzip -o accesskit-c-0.18.0/accesskit_c.zip
 
-      - name: Build .NET assemblies (for templates)
-        run: |
-          dotnet --info
-          python ./modules/mono/build_scripts/build_assemblies.py --godot-output-dir=./bin --godot-platform=windows --werror
-
-      - name: Build windows template_release (mono)
+      - name: Build windows template_release (GDScript2)
         uses: ./.github/actions/godot-build
         with:
           platform: windows
@@ -332,7 +217,9 @@ jobs:
             dev_mode=no
             debug_symbols=no
             module_text_server_fb_enabled=yes
-            module_mono_enabled=yes
+            module_mono_enabled=no
+            module_gdscript_enabled=no
+            module_gdscript2_enabled=yes
             d3d12=${{ steps.d3d12-sdk.outputs.D3D12_ENABLED }}
             "angle_libs=${{ github.workspace }}/"
             "accesskit_sdk_path=${{ github.workspace }}/accesskit-c-0.18.0/"
@@ -347,9 +234,6 @@ jobs:
           }
           if (-not $tmpl) { throw "Could not find a goblin windows template_release exe in ./bin" }
           Copy-Item $tmpl.FullName out\windows_release_x86_64.exe -Force
-          if (Test-Path bin\GodotSharp) {
-            Copy-Item -Recurse -Force bin\GodotSharp out\GodotSharp
-          }
 
       - name: Patch Windows template icon
         shell: pwsh
@@ -368,21 +252,15 @@ jobs:
           path: out/
 
   linux-templates:
-    name: "Linux mono templates (release)"
+    name: "Linux templates (GDScript2)"
     runs-on: ubuntu-22.04
-    needs: [prepare, generate-glue]
+    needs: [prepare]
     timeout-minutes: 180
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           submodules: recursive
-
-      - name: Download mono glue
-        uses: actions/download-artifact@v4
-        with:
-          name: mono-glue
-          path: modules/mono/glue
 
       - name: Setup dependencies
         run: |
@@ -391,14 +269,6 @@ jobs:
 
       - name: Setup Python and SCons
         uses: ./.github/actions/godot-deps
-
-      - name: Force remove preinstalled .NET SDKs
-        run: sudo rm -rf /usr/share/dotnet/sdk/*
-
-      - name: Setup older .NET SDK as baseline
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 8.0.100
 
       - name: Download pre-built AccessKit
         uses: dsaltares/fetch-gh-release-asset@1.1.2
@@ -411,12 +281,7 @@ jobs:
       - name: Extract pre-built AccessKit
         run: unzip -o accesskit-c-0.18.0/accesskit_c.zip
 
-      - name: Build .NET assemblies (for templates)
-        run: |
-          dotnet --info
-          python ./modules/mono/build_scripts/build_assemblies.py --godot-output-dir=./bin --godot-platform=linuxbsd --werror
-
-      - name: Build linux template_release (mono)
+      - name: Build linux template_release (GDScript2)
         uses: ./.github/actions/godot-build
         with:
           platform: linuxbsd
@@ -425,7 +290,9 @@ jobs:
             dev_mode=no
             debug_symbols=no
             module_text_server_fb_enabled=yes
-            module_mono_enabled=yes
+            module_mono_enabled=no
+            module_gdscript_enabled=no
+            module_gdscript2_enabled=yes
             "accesskit_sdk_path=${{ github.workspace }}/accesskit-c-0.18.0/"
 
       - name: Stage linux template files
@@ -439,10 +306,6 @@ jobs:
           fi
           cp "$tmpl" out/linux_release.x86_64
           chmod +x out/linux_release.x86_64
-          if [ -d bin/GodotSharp ]; then
-            cp -R bin/GodotSharp out/GodotSharp
-          fi
-
       - name: Upload linux templates payload
         uses: actions/upload-artifact@v4
         with:
@@ -450,9 +313,9 @@ jobs:
           path: out/
 
   macos-templates:
-    name: "macOS mono templates (release)"
+    name: "macOS templates (GDScript2)"
     runs-on: macos-latest
-    needs: [prepare, generate-glue]
+    needs: [prepare]
     timeout-minutes: 180
     steps:
       - name: Checkout
@@ -460,22 +323,11 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Download mono glue
-        uses: actions/download-artifact@v4
-        with:
-          name: mono-glue
-          path: modules/mono/glue
-
       - name: Select Xcode 26
         run: sudo xcode-select -s /Applications/Xcode_26.0.1.app
 
       - name: Setup Python and SCons
         uses: ./.github/actions/godot-deps
-
-      - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 8.0.100
 
       - name: Download pre-built AccessKit
         uses: dsaltares/fetch-gh-release-asset@1.1.2
@@ -499,23 +351,18 @@ jobs:
           fi
         continue-on-error: true
 
-      - name: Build .NET assemblies (for templates)
-        run: |
-          dotnet --info
-          python ./modules/mono/build_scripts/build_assemblies.py --godot-output-dir=./bin --godot-platform=macos --werror
-
-      - name: Build macOS template_release (mono, universal)
+      - name: Build macOS template_release (GDScript2, universal)
         shell: bash
         run: |
           python -V
-          scons -j2 platform=macos target=template_release arch=x86_64 module_mono_enabled=yes module_text_server_fb_enabled=yes dev_mode=no debug_symbols=no vulkan=${{ steps.vulkan-sdk.outputs.VULKAN_ENABLED }}
-          scons -j2 platform=macos target=template_release arch=arm64 module_mono_enabled=yes module_text_server_fb_enabled=yes dev_mode=no debug_symbols=no vulkan=${{ steps.vulkan-sdk.outputs.VULKAN_ENABLED }}
+          scons -j2 platform=macos target=template_release arch=x86_64 module_mono_enabled=no module_gdscript_enabled=no module_gdscript2_enabled=yes module_text_server_fb_enabled=yes dev_mode=no debug_symbols=no vulkan=${{ steps.vulkan-sdk.outputs.VULKAN_ENABLED }}
+          scons -j2 platform=macos target=template_release arch=arm64 module_mono_enabled=no module_gdscript_enabled=no module_gdscript2_enabled=yes module_text_server_fb_enabled=yes dev_mode=no debug_symbols=no vulkan=${{ steps.vulkan-sdk.outputs.VULKAN_ENABLED }}
 
       - name: Stage macOS template zip
         shell: bash
         run: |
           mkdir -p out
-          zipfile=$(ls -1 bin/goblin_*macos*mono*.zip 2>/dev/null | head -n1)
+          zipfile=$(ls -1 bin/goblin_*macos*.zip 2>/dev/null | head -n1)
           if [ -z "$zipfile" ]; then
             zipfile=$(ls -1 bin/*.zip 2>/dev/null | head -n1)
           fi
@@ -561,16 +408,10 @@ jobs:
           cp payloads/templates-linux/linux_release.x86_64 tpz/linux_release.x86_64
           cp payloads/templates-macos/macos.zip tpz/macos.zip
 
-          if [ -d payloads/templates-windows/GodotSharp ]; then
-            cp -R payloads/templates-windows/GodotSharp tpz/GodotSharp
-          elif [ -d payloads/templates-linux/GodotSharp ]; then
-            cp -R payloads/templates-linux/GodotSharp tpz/GodotSharp
-          fi
-
-          (cd tpz && zip -r ../goblin_mono_export_templates.tpz .)
+          (cd tpz && zip -r ../goblin_export_templates.tpz .)
 
       - name: Upload tpz artifact
         uses: actions/upload-artifact@v4
         with:
-          name: goblin-mono-export-templates-tpz
-          path: goblin_mono_export_templates.tpz
+          name: goblin-export-templates-tpz
+          path: goblin_export_templates.tpz

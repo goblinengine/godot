@@ -355,8 +355,8 @@ jobs:
         shell: bash
         run: |
           python -V
-          scons -j2 platform=macos target=template_release arch=x86_64 module_mono_enabled=no module_gdscript_enabled=no module_gdscript2_enabled=yes module_text_server_fb_enabled=yes dev_mode=no debug_symbols=no vulkan=${{ steps.vulkan-sdk.outputs.VULKAN_ENABLED }}
-          scons -j2 platform=macos target=template_release arch=arm64 module_mono_enabled=no module_gdscript_enabled=no module_gdscript2_enabled=yes module_text_server_fb_enabled=yes dev_mode=no debug_symbols=no vulkan=${{ steps.vulkan-sdk.outputs.VULKAN_ENABLED }}
+          scons -j2 platform=macos target=template_release arch=x86_64 module_mono_enabled=no module_gdscript_enabled=no module_gdscript2_enabled=yes module_text_server_fb_enabled=yes dev_mode=no debug_symbols=no generate_bundle=yes vulkan=${{ steps.vulkan-sdk.outputs.VULKAN_ENABLED }}
+          scons -j2 platform=macos target=template_release arch=arm64 module_mono_enabled=no module_gdscript_enabled=no module_gdscript2_enabled=yes module_text_server_fb_enabled=yes dev_mode=no debug_symbols=no generate_bundle=yes vulkan=${{ steps.vulkan-sdk.outputs.VULKAN_ENABLED }}
 
       - name: Stage macOS template zip
         shell: bash

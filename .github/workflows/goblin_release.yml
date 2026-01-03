@@ -364,6 +364,10 @@ jobs:
           mkdir -p out
           zipfile=$(ls -1 bin/goblin_*macos*.zip 2>/dev/null | head -n1)
           if [ -z "$zipfile" ]; then
+            # Godot naming may remain for macOS bundles; fall back to that before giving up.
+            zipfile=$(ls -1 bin/godot_*macos*.zip 2>/dev/null | head -n1)
+          fi
+          if [ -z "$zipfile" ]; then
             zipfile=$(ls -1 bin/*.zip 2>/dev/null | head -n1)
           fi
           if [ -z "$zipfile" ]; then

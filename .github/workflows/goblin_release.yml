@@ -362,19 +362,30 @@ jobs:
         shell: bash
         run: |
           mkdir -p out
-          zipfile=$(ls -1 bin/goblin_*macos*.zip 2>/dev/null | head -n1)
+          zipfile=$(find bin -maxdepth 1 -type f -name "goblin_*macos*.zip" | head -n1)
           if [ -z "$zipfile" ]; then
             # Godot naming may remain for macOS bundles; fall back to that before giving up.
-            zipfile=$(ls -1 bin/godot_*macos*.zip 2>/dev/null | head -n1)
+            zipfile=$(find bin -maxdepth 1 -type f -name "godot_*macos*.zip" | head -n1)
           fi
           if [ -z "$zipfile" ]; then
-            zipfile=$(ls -1 bin/*.zip 2>/dev/null | head -n1)
+            zipfile=$(find bin -maxdepth 1 -type f -name "*macos*.zip" | head -n1)
           fi
           if [ -z "$zipfile" ]; then
-            echo "::error::Could not find a macOS templates zip in ./bin"
+            zipfile=$(find bin -maxdepth 1 -type f -name "*.zip" | head -n1)
+          fi
+
+          if [ -n "$zipfile" ]; then
+            cp "$zipfile" out/macos.zip
+          elif [ -d "bin/macos_template.app" ]; then
+            # Fallback: the bundle exists but wasn't archived; zip it now.
+            (cd bin && zip -r ../out/macos.zip macos_template.app)
+          fi
+
+          if [ ! -f out/macos.zip ]; then
+            echo "::error::Could not find or create a macOS templates zip in ./bin"
+            ls -la bin || true
             exit 1
           fi
-          cp "$zipfile" out/macos.zip
 
       - name: Upload macOS templates payload
         uses: actions/upload-artifact@v4

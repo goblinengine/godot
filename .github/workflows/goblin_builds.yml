@@ -122,16 +122,31 @@ jobs:
       - name: Extract version config for templates
         shell: pwsh
         run: |
-          $editor = Get-ChildItem -Path bin -Filter "*.exe" | Where-Object { $_.Name -match "goblin" -and $_.Name -match "windows\.editor" -and $_.Name -notmatch "template" } | Select-Object -First 1
-          if (-not $editor) { throw "Could not find a goblin windows editor executable in ./bin" }
-          $ver = (& $editor.FullName --version).Trim()
-          if ([string]::IsNullOrWhiteSpace($ver)) { throw "Editor version output is empty" }
-          if ($ver -match "^v?([^ ]+)") {
-            $config = $Matches[1]
-          } else {
-            throw "Could not parse version from: $ver"
-          }
-          Set-Content -Path version_config.txt -Value $config -NoNewline
+          # Use version.py to build GODOT_VERSION_FULL_CONFIG (major.minor[.patch].status[.module_config]).
+          $script = @'
+          import importlib.util
+          import pathlib
+
+          spec = importlib.util.spec_from_file_location("godot_version", "version.py")
+          mod = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(mod)
+
+          parts = [str(mod.major), str(mod.minor)]
+          patch = getattr(mod, "patch", 0)
+          if patch:
+            parts.append(str(patch))
+          parts.append(str(mod.status))
+          module_config = str(getattr(mod, "module_config", "") or "")
+          if module_config:
+            parts.append(module_config)
+
+          version = ".".join(parts)
+          pathlib.Path("version_config.txt").write_text(version, encoding="utf-8")
+          print(f"Wrote version_config.txt with: {version}")
+          '@
+
+          $script = [System.Text.RegularExpressions.Regex]::Replace($script, '(?m)^ {10}', '')
+          python -c $script
 
       - name: Patch Windows editor icon
         shell: pwsh
@@ -362,14 +377,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p out
-          zipfile=$(find bin -maxdepth 1 -type f -name "goblin_*macos*.zip" | head -n1)
-          if [ -z "$zipfile" ]; then
-            # Godot naming may remain for macOS bundles; fall back to that before giving up.
-            zipfile=$(find bin -maxdepth 1 -type f -name "godot_*macos*.zip" | head -n1)
-          fi
-          if [ -z "$zipfile" ]; then
-            zipfile=$(find bin -maxdepth 1 -type f -name "*macos*.zip" | head -n1)
-          fi
+          zipfile=$(find bin -maxdepth 1 -type f -name "*macos*.zip" | head -n1)
           if [ -z "$zipfile" ]; then
             zipfile=$(find bin -maxdepth 1 -type f -name "*.zip" | head -n1)
           fi

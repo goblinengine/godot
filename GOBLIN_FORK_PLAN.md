@@ -28,7 +28,7 @@ A deliberately customized, lightweight fork of Godot Engine tailored specificall
 
 3. **Trim Aggressively, Keep Compatibility.** Strip unused modules when evidence confirms they are unused. The trimmed binary still runs DB unmodified.
 
-4. **Stable-Release Tracking, Not Master.** All branches track official Godot stable release tags (e.g., `4.7-stable`, `4.8-stable`), not the development `master` branch. This minimizes merge churn, avoids half-baked upstream features, and ensures the fork is always based on a production-tested engine. Current base: `4.7.1-stable` (commit a13da4feb8d). Rebase only at stable release boundaries (e.g., 4.7.2, 4.8.0).
+4. **Single-Branch Progressive Stable Tracking.** `master` is the one and only branch. It tracks official Godot stable releases, never the upstream `master` development branch. At each new stable release (e.g., 4.7.2, 4.8.0), `master` is rebased onto that release tag and goblin changes are re-applied. No branch-per-release archaeology — this fork serves one project and complexity is waste. Current base: `4.7.1-stable` (commit a13da4feb8d).
 
 5. **ADR-Governed Architecture.** All structural decisions — GDScript language extensions, core engine modifications, module architecture, renderer changes — go through Architecture Decision Records (ADRs) modeled on the Goblin Custom Engine's governance. No feature lands without a locked ADR. The ADR must specify: what changes, why it's justified against a concrete DB pain point, what files are touched, what the merge conflict surface is, and what tests gate acceptance.
 
@@ -765,7 +765,8 @@ modules/goblin/
 
 | Decision | Rationale | Date |
 |----------|-----------|------|
-| Rebase fork on Godot 4.7.1-stable (a13da4feb8d) | Move from tracking `master` to tracking stable releases. 4.7.1 is the latest production-tested Godot release. Establishes the `4.7-stable` branch pattern. | 2026-08-11 |
+| Rebase fork on Godot 4.7.1-stable (a13da4feb8d) | Move from tracking upstream `master` to tracking stable releases on a single `master` branch. Progressive rebase at each stable release boundary. | 2026-08-11 |
+| Single-branch over branch-per-release | Branch-per-release adds archaeology complexity with zero value for a single-project fork. `master` is the one branch; rebase it at each stable release. | 2026-08-11 |
 | Fork approach over custom engine | Custom engine (Goblin raylib+daslang) is 2-3 years from viable. Fork preserves all DB work, editor, asset pipeline. | 2026-08-11 |
 | Source override over core patching | Allows all changes to live in `modules/goblin/`. Clean rebase surface. | 2026-08-11 |
 | ADR governance for all structural decisions | Production-quality fork requires rigid architectural constraints, not experimental features. Modeled on Goblin Custom Engine governance. | 2026-08-11 |

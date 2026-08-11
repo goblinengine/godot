@@ -1,0 +1,48 @@
+#!/usr/bin/env python
+from misc.utility.scons_hints import *
+
+import os
+import goblin_builders
+import methods
+
+Import("env")
+
+# Create goblin environment (clone from main env)
+env_goblin = env.Clone()
+env_goblin.goblin_sources = []
+
+# Enable Goblin branding only for editor/tools builds so export templates
+# (no tools) don't link editor-only symbols like GoblinBranding.
+if env.editor_build:
+    env_goblin.Append(CPPDEFINES=[
+        "GOBLIN_BRANDING_ENABLED",
+        "GOBLIN_BRANDING_RUNTIME_ENABLED",  # Used to gate runtime/editor code
+    ])
+
+goblin_module_path = Dir(".").abspath
+
+# ===================================================================
+# REBRANDING APPROACH - BUILDER MONKEY-PATCHING
+# The builders are replaced in config.py before core/main SCsub runs.
+# This SCsub just needs to build our custom goblin classes.
+# ===================================================================
+
+# Export environment for sub-SCsubs
+Export("env_goblin")
+
+# Build subdirectories (mirrors Godot's structure)
+if os.path.exists(goblin_module_path + "/core/SCsub"):
+    SConscript("core/SCsub")
+
+# Build branding sources even for export templates.
+# The C++ code itself gates editor-only behavior with TOOLS_ENABLED.
+if os.path.exists(goblin_module_path + "/editor/SCsub"):
+    SConscript("editor/SCsub")
+
+# Add module registration
+env_goblin.add_source_files(env_goblin.goblin_sources, "*.cpp")
+
+# Add all goblin sources to main modules sources
+env.modules_sources += env_goblin.goblin_sources
+
+print("Goblin Engine: Complete rebranding applied")

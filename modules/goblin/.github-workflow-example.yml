@@ -1,0 +1,187 @@
+name: Build Goblin Engine
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  # Customize these
+  GODOT_VERSION: "4.3"
+  GOBLIN_VERSION: "1.0"
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    name: Linux Build
+    
+    steps:
+    - name: Checkout Goblin
+      uses: actions/checkout@v4
+      with:
+        path: goblin-module
+    
+    - name: Checkout Godot Engine
+      uses: actions/checkout@v4
+      with:
+        repository: godotengine/godot
+        ref: ${{ env.GODOT_VERSION }}-stable
+        path: godot
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential scons pkg-config \
+          libx11-dev libxcursor-dev libxinerama-dev libgl1-mesa-dev \
+          libglu-dev libasound2-dev libpulse-dev libudev-dev libxi-dev \
+          libxrandr-dev
+    
+    - name: Link Goblin module
+      run: |
+        ln -s $GITHUB_WORKSPACE/goblin-module $GITHUB_WORKSPACE/godot/modules/goblin
+    
+    - name: Build Goblin Engine (Editor)
+      run: |
+        cd godot
+        scons platform=linuxbsd target=editor production=yes -j4
+    
+    - name: Build Goblin Engine (Template)
+      run: |
+        cd godot
+        scons platform=linuxbsd target=template_release production=yes -j4
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: goblin-linux-${{ env.GOBLIN_VERSION }}
+        path: |
+          godot/bin/godot.linuxbsd.editor.x86_64
+          godot/bin/godot.linuxbsd.template_release.x86_64
+
+  build-windows:
+    runs-on: windows-latest
+    name: Windows Build
+    
+    steps:
+    - name: Checkout Goblin
+      uses: actions/checkout@v4
+      with:
+        path: goblin-module
+    
+    - name: Checkout Godot Engine
+      uses: actions/checkout@v4
+      with:
+        repository: godotengine/godot
+        ref: ${{ env.GODOT_VERSION }}-stable
+        path: godot
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Install SCons
+      run: python -m pip install scons
+    
+    - name: Setup MSVC
+      uses: microsoft/setup-msbuild@v2
+    
+    - name: Link Goblin module
+      shell: powershell
+      run: |
+        New-Item -ItemType SymbolicLink -Path "$env:GITHUB_WORKSPACE\godot\modules\goblin" -Target "$env:GITHUB_WORKSPACE\goblin-module"
+    
+    - name: Build Goblin Engine (Editor)
+      shell: cmd
+      run: |
+        cd godot
+        scons platform=windows target=editor production=yes -j4
+    
+    - name: Build Goblin Engine (Template)
+      shell: cmd
+      run: |
+        cd godot
+        scons platform=windows target=template_release production=yes -j4
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: goblin-windows-${{ env.GOBLIN_VERSION }}
+        path: |
+          godot/bin/godot.windows.editor.x86_64.exe
+          godot/bin/godot.windows.template_release.x86_64.exe
+
+  build-macos:
+    runs-on: macos-latest
+    name: macOS Build
+    
+    steps:
+    - name: Checkout Goblin
+      uses: actions/checkout@v4
+      with:
+        path: goblin-module
+    
+    - name: Checkout Godot Engine
+      uses: actions/checkout@v4
+      with:
+        repository: godotengine/godot
+        ref: ${{ env.GODOT_VERSION }}-stable
+        path: godot
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        brew install scons
+    
+    - name: Link Goblin module
+      run: |
+        ln -s $GITHUB_WORKSPACE/goblin-module $GITHUB_WORKSPACE/godot/modules/goblin
+    
+    - name: Build Goblin Engine (Editor)
+      run: |
+        cd godot
+        scons platform=macos target=editor arch=arm64 production=yes -j4
+    
+    - name: Build Goblin Engine (Template)
+      run: |
+        cd godot
+        scons platform=macos target=template_release arch=arm64 production=yes -j4
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: goblin-macos-${{ env.GOBLIN_VERSION }}
+        path: |
+          godot/bin/godot.macos.editor.arm64
+          godot/bin/godot.macos.template_release.arm64
+
+  # Optional: Create release
+  create-release:
+    needs: [build-linux, build-windows, build-macos]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        name: Goblin Engine ${{ env.GOBLIN_VERSION }}
+        files: |
+          goblin-linux-*/*
+          goblin-windows-*/*
+          goblin-macos-*/*
+        draft: false
+        prerelease: false

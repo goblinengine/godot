@@ -1,0 +1,48 @@
+This file lists the copyright holders and licensing terms of code and other
+resources included in the Goblin Engine source distribution. It does not
+apply to binary distributions, which include additional files and resources.
+
+Goblin Engine is based on Godot Engine. For the original Godot Engine copyright
+and license information, see the Godot Engine repository 
+at https://github.com/godotengine/godot
+
+
+Files: *
+Comment: Goblin Engine
+Copyright: 2026-present, Goblin Engine contributors
+           2014-present, Godot Engine contributors (see Godot AUTHORS.md)
+           2007-2014, Juan Linietsky, Ariel Manzur
+License: Expat
+
+Files: logo.svg
+ logo.png
+ icon.svg
+ icon.png
+Comment: Goblin Engine logo and icon
+Copyright: 2025, Your Name / Your Company
+License: CC-BY-4.0
+
+
+License: Expat
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+.
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+License: CC-BY-4.0
+Creative Commons Attribution 4.0 International
+https://creativecommons.org/licenses/by/4.0/

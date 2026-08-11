@@ -1,0 +1,7 @@
+// Windows resource file for Goblin Engine icon
+// This replaces the default Godot icon with the Goblin icon
+
+#include "winresrc.h"
+
+// Application icon (use the first icon for the .exe)
+GODOT_ICON ICON "godot.ico"

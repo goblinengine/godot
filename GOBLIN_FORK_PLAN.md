@@ -1,9 +1,9 @@
 # Goblin Engine — Lightweight Godot Fork Plan
 
-**Version:** 0.1.0 (draft)
+**Version:** 0.2.0 (draft)
 **Date:** 2026-08-11
 **Author:** Filip Anton (filipworksdev)
-**Status:** Planning — awaiting review
+**Status:** Active — Phase 0, based on Godot 4.7.1-stable (commit a13da4feb8d)
 
 ---
 
@@ -24,11 +24,11 @@ A deliberately customized, lightweight fork of Godot Engine tailored specificall
 
 1. **Source Override, Not Source Modification.** All changes live inside `modules/goblin/`. Godot core files are never modified. The build system redirects compilation to goblin-owned replacement files.
 
-2. **Surgical, Not Sweeping.** Every core change must justify its existence against a concrete DB project pain point. No speculative over-engineering.
+2. **Surgical, Not Sweeping. Project-Specific Only.** Every core change must justify its existence against a concrete DB project pain point. No speculative over-engineering. This fork serves ONE project — not the general Godot community. Features that benefit "most users" but don't serve DB have zero priority. Core engine edits are a LAST RESORT, only when a module override or GDScript extension is impossible.
 
 3. **Trim Aggressively, Keep Compatibility.** Strip unused modules when evidence confirms they are unused. The trimmed binary still runs DB unmodified.
 
-4. **Stable-Release Tracking, Not Master.** All branches track official Godot stable release tags (e.g., `4.6-stable`, `4.7-stable`), not the development `master` branch. This minimizes merge churn, avoids half-baked upstream features, and ensures the fork is always based on a production-tested engine. Rebase only at stable release boundaries.
+4. **Stable-Release Tracking, Not Master.** All branches track official Godot stable release tags (e.g., `4.7-stable`, `4.8-stable`), not the development `master` branch. This minimizes merge churn, avoids half-baked upstream features, and ensures the fork is always based on a production-tested engine. Current base: `4.7.1-stable` (commit a13da4feb8d). Rebase only at stable release boundaries (e.g., 4.7.2, 4.8.0).
 
 5. **ADR-Governed Architecture.** All structural decisions — GDScript language extensions, core engine modifications, module architecture, renderer changes — go through Architecture Decision Records (ADRs) modeled on the Goblin Custom Engine's governance. No feature lands without a locked ADR. The ADR must specify: what changes, why it's justified against a concrete DB pain point, what files are touched, what the merge conflict surface is, and what tests gate acceptance.
 
@@ -679,7 +679,7 @@ func test_graph_build_produces_identical_results():
     Navigation.build_sparse_graph(level_data, [], mock_nav_context())
     var point_count: int = Navigation.get_point_count()
     var connection_count: int = Navigation.get_connections().size()
-    # These values are frozen at Godot 4.6 stable baseline
+    # These values are frozen at Godot 4.7.1 stable baseline
     assert_eq(point_count, BASELINE_POINT_COUNT, "Nav point count changed")
     assert_eq(connection_count, BASELINE_CONNECTION_COUNT, "Nav connection count changed")
 ```
@@ -765,6 +765,7 @@ modules/goblin/
 
 | Decision | Rationale | Date |
 |----------|-----------|------|
+| Rebase fork on Godot 4.7.1-stable (a13da4feb8d) | Move from tracking `master` to tracking stable releases. 4.7.1 is the latest production-tested Godot release. Establishes the `4.7-stable` branch pattern. | 2026-08-11 |
 | Fork approach over custom engine | Custom engine (Goblin raylib+daslang) is 2-3 years from viable. Fork preserves all DB work, editor, asset pipeline. | 2026-08-11 |
 | Source override over core patching | Allows all changes to live in `modules/goblin/`. Clean rebase surface. | 2026-08-11 |
 | ADR governance for all structural decisions | Production-quality fork requires rigid architectural constraints, not experimental features. Modeled on Goblin Custom Engine governance. | 2026-08-11 |

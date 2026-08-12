@@ -1,0 +1,17 @@
+{
+  "$schema": "https://app.kilo.ai/config.json",
+  "permission": {
+    "edit": {
+      "modules/goblin/**": "allow",
+      ".kilo/**": "allow",
+      "*": "deny"
+    },
+    "external_directory": {
+      "D:\\DEV\\git\\godot/**": "allow",
+      "*": "deny"
+    }
+  },
+  "instructions": [
+    ".kilo/rules/*.md"
+  ]
+}

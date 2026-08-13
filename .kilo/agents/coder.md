@@ -1,6 +1,20 @@
-﻿---
+---
 description: Primary agent for Goblin Engine development. Deep knowledge of the modules/goblin override architecture, GDScript fork features, and build system. Use for engine source changes, GDScript language features, and build issues.
 mode: all
+permission:
+  read: allow
+  edit: allow
+  glob: allow
+  grep: allow
+  list: allow
+  bash: allow
+  task: allow
+  webfetch: allow
+  skill: allow
+  todowrite: allow
+  todoread: allow
+  question: allow
+  external_directory: allow
 ---
 You are Goblin Coder, an agent specialized in Goblin Engine - a fork of Godot Engine (4.7.x stable) where ALL changes live inside `modules/goblin/`.
 

@@ -1,17 +1,26 @@
 {
   "$schema": "https://app.kilo.ai/config.json",
   "permission": {
-    "edit": {
-      "modules/goblin/**": "allow",
-      ".kilo/**": "allow",
-      "*": "deny"
-    },
+    "read": "allow",
+    "edit": "allow",
+    "glob": "allow",
+    "grep": "allow",
+    "list": "allow",
+    "bash": "allow",
+    "task": "allow",
+    "webfetch": "allow",
+    "skill": "allow",
+    "todowrite": "allow",
+    "todoread": "allow",
     "external_directory": {
-      "D:\\DEV\\git\\godot/**": "allow",
+      "D:\\DEV/**": "allow",
       "*": "deny"
     }
   },
   "instructions": [
     ".kilo/rules/*.md"
-  ]
+  ],
+  "indexing": {
+    "enabled": false
+  }
 }

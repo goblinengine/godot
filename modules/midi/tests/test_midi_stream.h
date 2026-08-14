@@ -418,6 +418,39 @@ TEST_CASE("[MidiStream] loop restarts the song") {
 	CHECK(playback->get_playback_position() < 1.0);
 }
 
+TEST_CASE("[MidiStream] stream length scales with midi_speed") {
+	Ref<MidiStream> stream = make_stream();
+	CHECK(stream->get_length() == doctest::Approx(1.5).epsilon(0.1));
+	stream->set_midi_speed(2.0f);
+	CHECK(stream->get_length() == doctest::Approx(0.75).epsilon(0.1));
+	stream->set_midi_speed(0.5f);
+	CHECK(stream->get_length() == doctest::Approx(3.0).epsilon(0.1));
+}
+
+TEST_CASE("[MidiStream] seek repositions playback") {
+	bootstrap_audio();
+	Ref<MidiStream> stream = make_stream();
+
+	Ref<AudioStreamPlayback> playback = stream->instantiate_playback();
+	REQUIRE(playback.is_valid());
+	playback->start(0.0);
+
+	AudioFrame buf[512];
+	CHECK(playback->mix(buf, 1.0, 512) == 512);
+	playback->seek(0.5);
+	CHECK(playback->get_playback_position() == doctest::Approx(0.5).epsilon(0.01));
+
+	// Still playing after the seek; the second note (at 500 ms) must sound.
+	CHECK(playback->is_playing());
+	int mixed = playback->mix(buf, 1.0, 512);
+	CHECK(mixed == 512);
+	float energy = 0.0f;
+	for (int i = 0; i < 512; i++) {
+		energy += (float)std::fabs(buf[i].left) + (float)std::fabs(buf[i].right);
+	}
+	CHECK(energy > 0.0f);
+}
+
 TEST_CASE("[MidiStream] manual note triggering") {
 	bootstrap_audio();
 	Ref<SoundFontResource> sf_res = memnew(SoundFontResource);

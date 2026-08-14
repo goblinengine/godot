@@ -348,16 +348,7 @@ Ref<SoundFontResource> MidiStream::get_soundfont() const {
 void MidiStream::set_midi(const Ref<MidiFileResource> &p_resource) {
 	midi_resource = p_resource;
 	midi_length_ms = 0;
-	if (midi_resource.is_valid() && !midi_resource->get_data().is_empty()) {
-		tml_message *tmp = tml_load_memory(midi_resource->get_data().ptr(), (int)midi_resource->get_data().size());
-		if (tmp) {
-			unsigned int first_note_ms = 0;
-			unsigned int length_ms = 0;
-			tml_get_info(tmp, nullptr, nullptr, nullptr, &first_note_ms, &length_ms);
-			midi_length_ms = (uint32_t)length_ms;
-			tml_free(tmp);
-		}
-	}
+	midi_length_known = false;
 }
 
 Ref<MidiFileResource> MidiStream::get_midi() const {
@@ -395,7 +386,23 @@ String MidiStream::get_stream_name() const {
 }
 
 double MidiStream::get_length() const {
-	return (double)midi_length_ms / 1000.0;
+	if (!midi_length_known) {
+		if (midi_resource.is_valid() && !midi_resource->get_data().is_empty()) {
+			const PackedByteArray bytes = midi_resource->get_data();
+			tml_message *tmp = tml_load_memory(bytes.ptr(), (int)bytes.size());
+			if (tmp) {
+				unsigned int first_note_ms = 0;
+				unsigned int length_ms = 0;
+				tml_get_info(tmp, nullptr, nullptr, nullptr, &first_note_ms, &length_ms);
+				midi_length_ms = (uint32_t)length_ms;
+				tml_free(tmp);
+			}
+		}
+		midi_length_known = true;
+	}
+	// The playback consumes events at midi_speed, so the audible duration
+	// scales with it.
+	return (double)midi_length_ms / 1000.0 / (double)midi_speed;
 }
 
 bool MidiStream::is_monophonic() const {

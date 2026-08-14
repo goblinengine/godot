@@ -360,7 +360,10 @@ private:
 	Ref<MidiFileResource> midi_resource;
 	bool loop = false;
 	float midi_speed = 1.0f;
-	uint32_t midi_length_ms = 0;
+	// Parsed lazily on the first get_length() query (the same parse the
+	// playback performs anyway, so setting a stream never parses eagerly).
+	mutable uint32_t midi_length_ms = 0;
+	mutable bool midi_length_known = false;
 };
 
 VARIANT_ENUM_CAST(MidiStream::GeneralMidiInstrument);

@@ -8,8 +8,11 @@
 #ifndef MIDI_STREAM_PLAYBACK_H
 #define MIDI_STREAM_PLAYBACK_H
 
+#include "core/os/mutex.h"
 #include "core/templates/vector.h"
 #include "servers/audio/audio_stream.h"
+
+#include "midi_resources.h"
 
 class MidiStream;
 struct tsf;
@@ -56,6 +59,17 @@ private:
 	void _seek_internal(double p_position_sec);
 
 	Ref<MidiStream> stream;
+
+	// Serializes TSF voice state between the audio thread (_mix_internal)
+	// and main-thread calls (start/stop/seek, live note_on/note_off). The
+	// mutex is recursive: stop() and _mix_internal can both run on the
+	// audio thread without self-deadlock.
+	Mutex mutex;
+	// Resources the synthesizer/event list were last built from. Reload
+	// when the stream's resources change; never retry a failed load until
+	// the resource changes (corrupt files print once, not every mix block).
+	Ref<SoundFontResource> loaded_sf_res;
+	Ref<MidiFileResource> loaded_midi_res;
 
 	int sample_rate = 44100;
 	bool playing = false;

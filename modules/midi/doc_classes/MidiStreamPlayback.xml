@@ -4,7 +4,7 @@
 		Playback side of [MidiStream]: SoundFont synthesis plus live note triggering.
 	</brief_description>
 	<description>
-		Obtained from an [AudioStreamPlayer]'s [method AudioStreamPlayer.get_playback] when playing a [MidiStream]. Besides rendering the MIDI file through the SoundFont synthesizer, it allows triggering notes live (independent of the file's events) for gameplay-driven music or effects.
+		Obtained from an [AudioStreamPlayer]'s [method AudioStreamPlayer.get_stream_playback] when playing a [MidiStream]. Besides rendering the MIDI file through the SoundFont synthesizer, it allows triggering notes live (independent of the file's events) for gameplay-driven music or effects.
 		[b]Note:[/b] The [param preset_index] arguments refer to the preset index inside the loaded SoundFont (as listed in its preset table), not the General MIDI program number.
 	</description>
 	<tutorials>

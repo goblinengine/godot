@@ -67,8 +67,16 @@ void MidiStreamPlayback::_ensure_loaded() {
 		sample_rate = 44100;
 	}
 
-	if (!sf) {
-		Ref<SoundFontResource> sf_res = stream->get_soundfont();
+	// (Re)build the synthesizer when the stream's SoundFont changes. A
+	// failed load is not retried until the resource changes, so corrupt
+	// files report once instead of every mix block.
+	Ref<SoundFontResource> sf_res = stream->get_soundfont();
+	if (sf_res != loaded_sf_res) {
+		loaded_sf_res = sf_res;
+		if (sf) {
+			tsf_close(sf);
+			sf = nullptr;
+		}
 		if (sf_res.is_valid() && !sf_res->get_data().is_empty()) {
 			const PackedByteArray bytes = sf_res->get_data();
 			sf = tsf_load_memory(bytes.ptr(), (int)bytes.size());
@@ -84,8 +92,14 @@ void MidiStreamPlayback::_ensure_loaded() {
 		}
 	}
 
-	if (!midi) {
-		Ref<MidiFileResource> midi_res = stream->get_midi();
+	// Same for the MIDI event list.
+	Ref<MidiFileResource> midi_res = stream->get_midi();
+	if (midi_res != loaded_midi_res) {
+		loaded_midi_res = midi_res;
+		if (midi) {
+			tml_free(midi);
+			midi = nullptr;
+		}
 		if (midi_res.is_valid() && !midi_res->get_data().is_empty()) {
 			const PackedByteArray bytes = midi_res->get_data();
 			midi = tml_load_memory(bytes.ptr(), (int)bytes.size());
@@ -98,6 +112,7 @@ void MidiStreamPlayback::_ensure_loaded() {
 				midi_length_ms = (uint32_t)length_ms;
 			}
 		}
+		event_cursor = midi;
 	}
 }
 
@@ -173,12 +188,19 @@ void MidiStreamPlayback::_seek_internal(double p_position_sec) {
 }
 
 void MidiStreamPlayback::start(double p_from_pos) {
+	MutexLock lock(mutex);
 	begin_resample();
 	playing = true;
+	// Pre-size on the main thread: _mix_internal only ever renders
+	// INTERNAL_BUFFER_LEN (128) frames, so the audio thread never allocates.
+	if (interleaved.size() < 128 * 2) {
+		interleaved.resize(128 * 2);
+	}
 	_seek_internal(p_from_pos);
 }
 
 void MidiStreamPlayback::stop() {
+	MutexLock lock(mutex);
 	playing = false;
 	position_sec = 0.0;
 	loop_count = 0;
@@ -202,10 +224,12 @@ double MidiStreamPlayback::get_playback_position() const {
 }
 
 void MidiStreamPlayback::seek(double p_time) {
+	MutexLock lock(mutex);
 	_seek_internal(p_time);
 }
 
 int MidiStreamPlayback::_mix_internal(AudioFrame *p_buffer, int p_frames) {
+	MutexLock lock(mutex);
 	if (!playing) {
 		return 0;
 	}
@@ -254,6 +278,7 @@ float MidiStreamPlayback::get_stream_sampling_rate() {
 }
 
 void MidiStreamPlayback::note_on(int32_t p_preset_index, int32_t p_key, float p_velocity) {
+	MutexLock lock(mutex);
 	_ensure_loaded();
 	if (!sf) {
 		WARN_PRINT("MidiStreamPlayback: note_on called but no soundfont loaded.");
@@ -264,6 +289,7 @@ void MidiStreamPlayback::note_on(int32_t p_preset_index, int32_t p_key, float p_
 }
 
 void MidiStreamPlayback::note_off(int32_t p_preset_index, int32_t p_key) {
+	MutexLock lock(mutex);
 	if (!sf) {
 		return;
 	}
@@ -271,6 +297,7 @@ void MidiStreamPlayback::note_off(int32_t p_preset_index, int32_t p_key) {
 }
 
 void MidiStreamPlayback::note_off_all() {
+	MutexLock lock(mutex);
 	if (!sf) {
 		return;
 	}

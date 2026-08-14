@@ -1,4 +1,6 @@
-# Vision - Master Prompt (Goblin Engine)
+# Master Prompt (Goblin Engine)
+
+> Living charter: updated when locked decisions (ADRs) change a principle, decision-hierarchy weight, or non-negotiable. Maintainer: architect.
 
 ## Identity
 

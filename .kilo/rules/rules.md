@@ -44,12 +44,13 @@ Procedures: load `overrides` skill.
 - Wrong mechanism (module copy for 1 file)? -> use core swap.
 - Mirrored file drifted from upstream without port note? -> sync (`porting` skill).
 - Architecture/feature changed but `modules/goblin/docs/` stale? -> update docs (`CODE_MAP.md`, `gdscript_features.md`).
+- Locked decision changes a principle/hierarchy/non-negotiable but `.kilo/rules/master_prompt.md` not updated? -> update it (living charter, architect maintains).
 - Work not reflected in `backlog.md` (new/done/rejected)? -> update backlog.
 
 ## Orientation
 
-- Vision + decision hierarchy: `.kilo/rules/vision.md`.
-- Tickets: `modules/goblin/docs/backlog.md` - check before starting work, update after (new/done/rejected). Detailed specs in `.kilo/plans/`.
+- Vision + decision hierarchy: `.kilo/rules/master_prompt.md`.
+- Tickets: `modules/goblin/docs/backlog.md` - check before starting work, update after (new/done/rejected). Detailed specs in `modules/goblin/docs/plans/`.
 - Code map: `modules/goblin/docs/CODE_MAP.md` - read before implementing, update after.
 - Build + verify: `build` skill.
 - Port upstream: `porting` skill.

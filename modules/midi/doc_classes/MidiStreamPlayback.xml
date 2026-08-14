@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="MidiStreamPlayback" inherits="AudioStreamPlaybackResampled" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Playback side of [MidiStream]: SoundFont synthesis plus live note triggering.
+	</brief_description>
+	<description>
+		Obtained from an [AudioStreamPlayer]'s [method AudioStreamPlayer.get_playback] when playing a [MidiStream]. Besides rendering the MIDI file through the SoundFont synthesizer, it allows triggering notes live (independent of the file's events) for gameplay-driven music or effects.
+		[b]Note:[/b] The [param preset_index] arguments refer to the preset index inside the loaded SoundFont (as listed in its preset table), not the General MIDI program number.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="note_on">
+			<return type="void" />
+			<param index="0" name="preset_index" type="int" />
+			<param index="1" name="key" type="int" />
+			<param index="2" name="velocity" type="float" />
+			<description>
+				Triggers a note using the given SoundFont preset index, MIDI key (0-127), and velocity (0.0-1.0).
+			</description>
+		</method>
+		<method name="note_off">
+			<return type="void" />
+			<param index="0" name="preset_index" type="int" />
+			<param index="1" name="key" type="int" />
+			<description>
+				Releases a previously triggered note.
+			</description>
+		</method>
+		<method name="note_off_all">
+			<return type="void" />
+			<description>
+				Releases all currently playing notes.
+			</description>
+		</method>
+	</methods>
+</class>

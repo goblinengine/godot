@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="MidiFileResource" inherits="Resource" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Imported MIDI file (`.mid`/`.midi`), raw bytes of a Standard MIDI File.
+	</brief_description>
+	<description>
+		Produced by importing a MIDI file in the editor. The raw file bytes are stored in [member data] and parsed at playback time by [MidiStream].
+	</description>
+	<tutorials>
+	</tutorials>
+	<members>
+		<member name="data" type="PackedByteArray" setter="set_data" getter="get_data">
+			The raw bytes of the MIDI file.
+		</member>
+	</members>
+</class>

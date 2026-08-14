@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="SoundFontResource" inherits="Resource" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Imported SoundFont 2 file (`.sf2`), raw bytes of the font.
+	</brief_description>
+	<description>
+		Produced by importing a SoundFont 2 file in the editor. The raw file bytes are stored in [member data] and parsed at playback time by the TinySoundFont synthesizer inside [MidiStream].
+	</description>
+	<tutorials>
+	</tutorials>
+	<members>
+		<member name="data" type="PackedByteArray" setter="set_data" getter="get_data">
+			The raw bytes of the SoundFont file.
+		</member>
+	</members>
+</class>

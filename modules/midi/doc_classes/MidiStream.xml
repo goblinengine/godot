@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="MidiStream" inherits="AudioStream" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		An AudioStream that plays MIDI files using SoundFont synthesis.
+	</brief_description>
+	<description>
+		[MidiStream] plays a MIDI file through the TinySoundFont SoundFont 2 synthesizer. Assign it to an [AudioStreamPlayer], [AudioStreamPlayer2D], or [AudioStreamPlayer3D] to get playback with the standard bus/volume controls, including 3D spatialization.
+		Set [member soundfont] to an imported SoundFont 2 resource (`.sf2`) and [member midi] to an imported MIDI file resource (`.mid`/`.midi`). [member loop] restarts the song when it ends; [member midi_speed] scales the playback tempo.
+		The General MIDI instrument, note, and drum note constants are provided as enums ([enum GeneralMidiInstrument], [enum MidiNote], [enum MidiDrumNote]) for use with live note triggering via [method AudioStreamPlayback.get_playback] and [method MidiStreamPlayback.note_on].
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="set_soundfont">
+			<return type="void" />
+			<param index="0" name="resource" type="SoundFontResource" />
+			<description>
+				Sets the SoundFont used for synthesis.
+			</description>
+		</method>
+		<method name="get_soundfont">
+			<return type="SoundFontResource" />
+			<description>
+				Returns the SoundFont used for synthesis.
+			</description>
+		</method>
+		<method name="set_midi">
+			<return type="void" />
+			<param index="0" name="resource" type="MidiFileResource" />
+			<description>
+				Sets the MIDI file to play.
+			</description>
+		</method>
+		<method name="get_midi">
+			<return type="MidiFileResource" />
+			<description>
+				Returns the MIDI file being played.
+			</description>
+		</method>
+		<method name="set_loop">
+			<return type="void" />
+			<param index="0" name="loop" type="bool" />
+			<description>
+				If [code]true[/code], the song restarts from the beginning when it ends.
+			</description>
+		</method>
+		<method name="get_loop">
+			<return type="bool" />
+			<description>
+				Returns whether the song loops.
+			</description>
+		</method>
+		<method name="set_midi_speed">
+			<return type="void" />
+			<param index="0" name="speed" type="float" />
+			<description>
+				Sets the playback tempo scale (1.0 is the file's original tempo).
+			</description>
+		</method>
+		<method name="get_midi_speed">
+			<return type="float" />
+			<description>
+				Returns the playback tempo scale.
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="loop" type="bool" setter="set_loop" getter="get_loop" default="false">
+			If [code]true[/code], the song restarts from the beginning when it ends.
+		</member>
+		<member name="midi" type="MidiFileResource" setter="set_midi" getter="get_midi">
+			The MIDI file to play.
+		</member>
+		<member name="midi_speed" type="float" setter="set_midi_speed" getter="get_midi_speed" default="1.0">
+			The playback tempo scale (1.0 is the file's original tempo).
+		</member>
+		<member name="soundfont" type="SoundFontResource" setter="set_soundfont" getter="get_soundfont">
+			The SoundFont used for synthesis.
+		</member>
+	</members>
+</class>

@@ -1,11 +1,11 @@
 ﻿# Goblin Engine - Rules
 
-Fork of Godot 4.7.x. All changes inside `modules/goblin/`, injected at build time. Upstream files: never modified.
+Fork of Godot 4.7.x. Overrides and branding live inside `modules/goblin/`, injected at build time. Additive feature modules (zero overrides) live at the repo root in `modules/<name>/` as standalone modules (ADR 0008). Upstream files: never modified.
 
 ## Hard Rules
 
 1. NEVER clean `bin/`: no `scons -c`, no `Remove-Item bin/`, keep `.sconsign*` + `.scons_env.json`. Build cache never cleared.
-2. NEVER modify outside `modules/goblin/` without explicit permission. Seem to need upstream edits? STOP, propose override.
+2. NEVER modify outside `modules/goblin/` without explicit permission. Seem to need upstream edits? STOP, propose override. Exception: new additive feature modules in `modules/<name>/` (ADR 0008) — self-contained, no upstream file touched.
 3. NEVER disable modules / change build flags without permission. `DISABLE_MODULES` + build command fixed.
 4. Core file overrides only via `goblin_add_library()` in `modules/goblin/config.py`. No other hacks.
 
@@ -26,7 +26,7 @@ Fork of Godot 4.7.x. All changes inside `modules/goblin/`, injected at build tim
 - Fork code: upstream Godot conventions. No `Goblin*`/`goblin_*` prefixes on classes, methods, files.
 - Wrong: `GoblinVariant`, `GoblinArray`, `goblin_validate()`.
 - Right: upstream names (`GDScriptDataType::validate()`, `append_datatype()`).
-- `Goblin` prefix allowed only: housekeeping singletons (`GoblinBranding`, `GoblinExportTweaks`) + build/branding artifacts (`bin/goblin.*.exe`, `modules/goblin/`, hooks `goblin_add_library`, `GOBLIN_MODULE_OVERRIDES`).
+- `Goblin` prefix allowed only: build/branding artifacts (`bin/goblin.*.exe`, `modules/goblin/`, hooks `goblin_add_library`, `GOBLIN_MODULE_OVERRIDES`). No `Goblin*` housekeeping singletons anymore (ADR 0007 deleted `GoblinBranding`/`GoblinExportTweaks`).
 
 ## Overrides (summary)
 

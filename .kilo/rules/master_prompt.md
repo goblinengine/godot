@@ -9,7 +9,7 @@ Fork of Godot 4.7.x. Narrow, related genre set: FPS, RPG, Shooter, Boomer Shoote
 - Focus: Systemic + Immersive Sim (systems interacting, minimal pre-scripted behavior).
 - Secondary: Low-Fi/Retro presentation.
 - Cross-cutting: make GDScript better overall - a first-class product, not a side effect.
-- DB is first consumer. Concrete DB pain is the primary justification, but features must serve the set above.
+- A flagship reference title in the genre set is the first consumer. Concrete genre pain is the primary justification, but features must serve the set above.
 
 ## What "good" means
 
@@ -22,8 +22,8 @@ Fork of Godot 4.7.x. Narrow, related genre set: FPS, RPG, Shooter, Boomer Shoote
 
 ## Decision hierarchy (when principles conflict)
 
-1. Hot-path performance - engine leads; DB updates to match new shapes.
-2. DB compatibility - corpus compile + 342 tests + level load, every change.
+1. Hot-path performance - engine leads; the reference title updates to match new shapes.
+2. Reference-title compatibility - corpus compile + 342 tests + level load, every change.
 3. Minimal override surface - rebase-friendliness, stable tracking.
 4. Lean scope - no speculative features.
 
@@ -31,11 +31,11 @@ Godot compatibility sits above the hierarchy: never traded.
 
 ## Working model
 
-- GDScript: actively improve the language (pain-driven, DB-justified). Fewer Variant workarounds, better typing.
+- GDScript: actively improve the language (pain-driven, genre-justified). Fewer Variant workarounds, better typing.
 - Structural decisions: short ADR. Routine fixes: none.
 - Agents verify + report: build, test, state unverified gaps. Never claim done without proof.
 - Poorly defined feature: refuse implementation, escalate to architect. Do not "make it work" ad hoc.
-- Engine-side systemic support beats scripted workarounds when DB can migrate to it.
+- Engine-side systemic support beats scripted workarounds when the reference title can migrate to it.
 
 ## Non-negotiables
 

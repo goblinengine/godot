@@ -22,7 +22,7 @@ Examples:
 - Verbose: "If the user inputs a valid token, then the system should process it."
 - Telegraphic: "Input valid token -> System process."
 - Verbose: "Because the database is full, we cannot save the new record."
-- Telegraphic: "DB full -> save blocked."
+- Telegraphic: "Database full -> save blocked."
 
 ## When to use
 

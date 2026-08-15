@@ -17,7 +17,7 @@ Review the CURRENT implementation of a feature/area for potential issues: correc
 3. Review against checks:
    - **Spec compliance**: locked semantics implemented exactly as documented?
    - **Correctness**: edge cases - empty/null/nested values, constant folding, error messages, and interactions with OTHER fork features (unions x shaped dicts x @private x then/elthen). Non-regression of upstream behavior.
-   - **Integration**: DB corpus + test gate plausible? New tests present and meaningful? `.out` files verified (`--gdscript-generate-tests`)?
+   - **Integration**: reference corpus + test gate plausible? New tests present and meaningful? `.out` files verified (`--gdscript-generate-tests`)?
    - **VM/runtime**: opcode safety (stack discipline, bounds), hot-path impact, ABI constraints (`gdscript.h` layout must stay identical to upstream).
    - **Upstream drift**: divergence surface growing unnecessarily? Rebase risk?
 4. Classify each finding: **CRITICAL** (breaks correctness/compat) / **MAJOR** (bug or spec deviation) / **MINOR** (edge case, hardening) / **NIT** (style). Label verified (in code) or inferred (needs runtime test) - never present inference as fact.

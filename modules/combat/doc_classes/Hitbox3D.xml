@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="Hitbox3D" inherits="Area3D" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Active damage detector: an Area3D attached to an attack that scans for Hurtbox3D receivers.
+	</brief_description>
+	<description>
+		The Hitbox3D is attached to an attack (a sword swing, bullet, or explosion). It scans the physics space for Hurtbox3D receivers and carries the attack's damage metadata ([member damage], [member knockback], [member damage_types], [member element], [member source]). When it overlaps a Hurtbox3D, it forwards the hit via [method register_hit], which calls Hurtbox3D.apply_hit and emits [signal hit] with the standard hit-data dictionary.
+		Monitoring is on and monitorable is off: attacks are detectors, not targets. A hurtbox is only detected when its collision layer is in this hitbox's [member collision_mask]. Each hurtbox is hit at most once per activation; call [method reset] to re-arm for a new swing.
+	</description>
+	<tutorials>
+	</tutorials>
+	<members>
+		<member name="active" type="bool" setter="set_active" getter="is_active" default="true">
+			If [code]false[/code], overlaps are ignored.
+		</member>
+		<member name="damage" type="float" setter="set_damage" getter="get_damage" default="0.0">
+			Damage dealt per hit.
+		</member>
+		<member name="damage_types" type="Array" setter="set_damage_types" getter="get_damage_types" default="[]">
+			Array of StringName damage type tags (e.g. [code]"fire"[/code], [code]"pierce"[/code]).
+		</member>
+		<member name="element" type="StringName" setter="set_element" getter="get_element" default="&amp;&quot;&quot;">
+			Elemental flavor tag (empty when none).
+		</member>
+		<member name="knockback" type="float" setter="set_knockback" getter="get_knockback" default="0.0">
+			Knockback force applied per hit.
+		</member>
+		<member name="source" type="Object" setter="set_source" getter="get_source">
+			The attacker object (character, weapon, etc.).
+		</member>
+	</members>
+	<methods>
+		<method name="build_hit_data">
+			<return type="Dictionary" />
+			<param index="0" name="collider" type="Object" default="null" />
+			<param index="1" name="position" type="Vector3" default="Vector3(0, 0, 0)" />
+			<param index="2" name="normal" type="Vector3" default="Vector3(0, 0, 0)" />
+			<param index="3" name="velocity" type="Vector3" default="Vector3(0, 0, 0)" />
+			<description>
+				Builds the standard hit-data dictionary from this hitbox's attack data.
+			</description>
+		</method>
+		<method name="register_hit">
+			<return type="void" />
+			<param index="0" name="hurtbox" type="Hurtbox3D" />
+			<param index="1" name="hit_data" type="Dictionary" />
+			<description>
+				Registers a hit against a hurtbox: forwards to the hurtbox via Hurtbox3D.apply_hit and emits [signal hit]. Called automatically on overlap; callable directly for scripted attacks.
+			</description>
+		</method>
+		<method name="reset">
+			<return type="void" />
+			<description>
+				Clears the already-hit set so the hitbox can hit again (new swing).
+			</description>
+		</method>
+	</methods>
+	<signals>
+		<signal name="hit">
+			<param index="0" name="hurtbox" type="Hurtbox3D" />
+			<param index="1" name="hit_data" type="Dictionary" />
+			<description>
+				Emitted when this hitbox registers a hit against a hurtbox.
+			</description>
+		</signal>
+	</signals>
+</class>

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="Hurtbox3D" inherits="Area3D" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Passive damage receiver: an Area3D that active detectors find and hit.
+	</brief_description>
+	<description>
+		The Hurtbox3D is attached to a character or object that can take damage. It never scans for anything itself ([member monitoring] is off) but stays monitorable so active detectors (Hitbox3D, Projectile3D) can find it through the physics space. When an attacker calls [method apply_hit], the hurtbox validates its state and emits [signal hurt] with the attacker and the standard hit-data dictionary. Connect the owning character's health system to [signal hurt] to apply damage.
+		Place hurtboxes on a dedicated collision layer and point attacking hitboxes' [member Area3D.collision_mask] at it.
+	</description>
+	<tutorials>
+	</tutorials>
+	<members>
+		<member name="active" type="bool" setter="set_active" getter="is_active" default="true">
+			If [code]false[/code], hits are ignored (invulnerability window).
+		</member>
+	</members>
+	<methods>
+		<method name="apply_hit">
+			<return type="void" />
+			<param index="0" name="attacker" type="Object" />
+			<param index="1" name="hit_data" type="Dictionary" />
+			<description>
+				Accepts a hit from any attacker carrying hit data (Hitbox3D, Projectile3D, or scripted attackers). Emits [signal hurt] when active. Virtual, so C++ subclasses can intercept or transform damage.
+			</description>
+		</method>
+	</methods>
+	<signals>
+		<signal name="hurt">
+			<param index="0" name="attacker" type="Object" />
+			<param index="1" name="hit_data" type="Dictionary" />
+			<description>
+				Emitted when [method apply_hit] accepts a hit.
+			</description>
+		</signal>
+	</signals>
+</class>

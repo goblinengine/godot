@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="Projectile3D" inherits="Area3D" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Manual-velocity projectile with swept collision: an Area3D that flies, steers, bounces, and reports hits.
+	</brief_description>
+	<description>
+		Projectile3D is a deliberately non-rigid-body projectile: it owns its motion (velocity, gravity, homing) and uses a ShapeCast3D for continuous swept collision, so fast projectiles cannot tunnel through thin geometry. Call [method fire] to launch it; it processes itself each physics frame until it hits, expires, or [method stop] is called.
+		Behavior flags: [member max_bounces] &gt; 0 reflects off hits (scaled by [member bounce_factor]); [member homing] with a [member target] steers toward it; [member gravity_scale] &gt; 0 applies engine gravity; [member max_lifetime] and [member max_range] bound flight. On hit it emits [signal hit] with the standard hit-data dictionary, and forwards the hit to a Hurtbox3D on the collider (or its children) via Hurtbox3D.apply_hit.
+	</description>
+	<tutorials>
+	</tutorials>
+	<members>
+		<member name="bounce_factor" type="float" setter="set_bounce_factor" getter="get_bounce_factor" default="0.5">
+			Speed retained after a bounce (0..1).
+		</member>
+		<member name="damage" type="float" setter="set_damage" getter="get_damage" default="1.0">
+			Damage dealt per hit.
+		</member>
+		<member name="damage_types" type="Array" setter="set_damage_types" getter="get_damage_types" default="[]">
+			Array of StringName damage type tags.
+		</member>
+		<member name="direction" type="Vector3" setter="set_direction" getter="get_direction" default="Vector3(0, 0, -1)">
+			Flight direction (normalized when firing).
+		</member>
+		<member name="element" type="StringName" setter="set_element" getter="get_element" default="&amp;&quot;&quot;">
+			Elemental flavor tag (empty when none).
+		</member>
+		<member name="gravity_scale" type="float" setter="set_gravity_scale" getter="get_gravity_scale" default="0.0">
+			Engine gravity multiplier (0 = no gravity).
+		</member>
+		<member name="homing" type="bool" setter="set_homing" getter="is_homing" default="false">
+			If [code]true[/code], steers toward [member target].
+		</member>
+		<member name="homing_strength" type="float" setter="set_homing_strength" getter="get_homing_strength" default="4.0">
+			Homing turn rate (lerp factor per second).
+		</member>
+		<member name="knockback" type="float" setter="set_knockback" getter="get_knockback" default="0.0">
+			Knockback force applied per hit.
+		</member>
+		<member name="max_bounces" type="int" setter="set_max_bounces" getter="get_max_bounces" default="0">
+			Bounces before destruction (0 = no bounce, destroy on first hit).
+		</member>
+		<member name="max_lifetime" type="float" setter="set_max_lifetime" getter="get_max_lifetime" default="0.0">
+			Flight time before expiry in seconds (0 = infinite).
+		</member>
+		<member name="max_range" type="float" setter="set_max_range" getter="get_max_range" default="0.0">
+			Travel distance before expiry in units (0 = infinite).
+		</member>
+		<member name="source" type="Object" setter="set_source" getter="get_source">
+			The attacker object (character, weapon, etc.).
+		</member>
+		<member name="speed" type="float" setter="set_speed" getter="get_speed" default="20.0">
+			Initial flight speed.
+		</member>
+		<member name="target" type="Node3D" setter="set_target" getter="get_target">
+			Homing target.
+		</member>
+		<member name="velocity" type="Vector3" setter="set_velocity" getter="get_velocity" default="Vector3(0, 0, 0)">
+			Current velocity. Read it for hit data; set it for manual control.
+		</member>
+	</members>
+	<methods>
+		<method name="fire">
+			<return type="void" />
+			<param index="0" name="origin" type="Vector3" />
+			<param index="1" name="direction" type="Vector3" />
+			<description>
+				Starts the projectile at [param origin] traveling along [param direction] at [member speed]. Resets lifetime, range, and bounce state.
+			</description>
+		</method>
+		<method name="get_distance_traveled">
+			<return type="float" />
+			<description>
+				Total distance flown since firing.
+			</description>
+		</method>
+		<method name="get_lifetime">
+			<return type="float" />
+			<description>
+				Total flight time since firing.
+			</description>
+		</method>
+		<method name="is_flying">
+			<return type="bool" />
+			<description>
+				True while the projectile is in flight.
+			</description>
+		</method>
+		<method name="stop">
+			<return type="void" />
+			<description>
+				Stops flight without destroying the node (script cleanup).
+			</description>
+		</method>
+	</methods>
+	<signals>
+		<signal name="expired">
+			<description>
+				Emitted when the projectile ends flight (hit with no bounces left, lifetime or range exceeded).
+			</description>
+		</signal>
+		<signal name="hit">
+			<param index="0" name="hit_data" type="Dictionary" />
+			<description>
+				Emitted on collision with the standard hit-data dictionary.
+			</description>
+		</signal>
+	</signals>
+</class>

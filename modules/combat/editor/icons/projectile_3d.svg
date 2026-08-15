@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <!-- Projectile3D class icon: arrow / bolt over a rounded mover box. -->
+  <g fill="#c7a15a" fill-rule="evenodd">
+    <path opacity=".18" d="M3 4h10a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z"/>
+    <path d="M3 5h10v6H3V5Zm1 1v4h8V6H4Z" opacity=".35"/>
+    <!-- Arrow -->
+    <path d="M4 8.5 9 4v2.4L12 4v2.4L9 8.4v2.1L4 8.5Z" opacity=".85"/>
+  </g>
+</svg>

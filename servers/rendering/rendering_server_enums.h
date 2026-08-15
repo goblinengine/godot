@@ -460,6 +460,8 @@ enum ViewportScaling3DMode {
 	VIEWPORT_SCALING_3D_MODE_METALFX_SPATIAL,
 	VIEWPORT_SCALING_3D_MODE_METALFX_TEMPORAL,
 	VIEWPORT_SCALING_3D_MODE_NEAREST,
+	VIEWPORT_SCALING_3D_MODE_CUT1,
+	VIEWPORT_SCALING_3D_MODE_CUT2,
 	VIEWPORT_SCALING_3D_MODE_MAX,
 	VIEWPORT_SCALING_3D_MODE_OFF = 255, // for internal use only
 };
@@ -472,12 +474,14 @@ enum ViewportScaling3DType {
 };
 
 inline ViewportScaling3DType scaling_3d_mode_type(ViewportScaling3DMode p_mode) {
-	if (p_mode == VIEWPORT_SCALING_3D_MODE_NEAREST || p_mode == VIEWPORT_SCALING_3D_MODE_BILINEAR || p_mode == VIEWPORT_SCALING_3D_MODE_FSR || p_mode == VIEWPORT_SCALING_3D_MODE_METALFX_SPATIAL) {
-		return VIEWPORT_SCALING_3D_TYPE_SPATIAL;
-	} else if (p_mode == VIEWPORT_SCALING_3D_MODE_FSR2 || p_mode == VIEWPORT_SCALING_3D_MODE_METALFX_TEMPORAL) {
+	if (p_mode == VIEWPORT_SCALING_3D_MODE_FSR2 || p_mode == VIEWPORT_SCALING_3D_MODE_METALFX_TEMPORAL) {
 		return VIEWPORT_SCALING_3D_TYPE_TEMPORAL;
+	} else if (p_mode == VIEWPORT_SCALING_3D_MODE_OFF) {
+		return VIEWPORT_SCALING_3D_TYPE_NONE;
 	}
-	return VIEWPORT_SCALING_3D_TYPE_NONE;
+	// Every other mode (bilinear, nearest, FSR, MetalFX spatial, CUT 1-3, and
+	// any future spatial upscaler) is spatial by construction.
+	return VIEWPORT_SCALING_3D_TYPE_SPATIAL;
 }
 
 enum ViewportAnisotropicFiltering {

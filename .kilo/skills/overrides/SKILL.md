@@ -1,11 +1,11 @@
 ---
 name: overrides
-description: The three override mechanisms of Goblin Engine + procedures for adding each kind. Load when making or planning any engine change.
+description: The four override mechanisms of Goblin Engine + procedures for adding each kind. Load when making or planning any engine change.
 ---
 
 # Override Mechanisms
 
-All fork changes injected at build time via 3 mechanisms. Upstream files: never modified.
+All fork changes injected at build time via 4 mechanisms. Upstream files: never modified.
 
 ## 1. Module override (whole module)
 
@@ -58,9 +58,29 @@ main_builders.make_splash = goblin_builders.goblin_splash_builder
 
 Add one: implement in `goblin_builders.py`, assign in `configure()`.
 
+## 4. Build-time option injection (pre-options build decision)
+
+Set SCons option values BEFORE the first `opts.Update` by mutating `SCons.Script.ARGUMENTS`
+at module import time in `modules/goblin/config.py` (first module loop, SConstruct:474).
+Used when the decision is a `module_*_enabled`-style gate that configure() runs too late to
+influence (ordering: gate loop runs before goblin's configure). Current use: module trim
+(ADR 0012).
+
+```python
+from SCons.Script import ARGUMENTS
+for _mod in DISABLE_MODULES:
+    _key = f"module_{_mod}_enabled"
+    if _key not in ARGUMENTS:   # user CLI wins
+        ARGUMENTS[_key] = "no"
+```
+
+Rules: user CLI wins (guard `if key not in ARGUMENTS`), args beat custom.py/profile files,
+always verify with a configure()-time canary print.
+
 ## Choose mechanism
 
 - Many files of one module -> 1.
 - 1-2 core files -> 2.
 - Build-time generator -> 3.
+- Pre-options build decision (module gates decided before opts.Update) -> 4.
 - No fit -> extend existing mechanism. New mechanism? Document in `.kilo/rules/rules.md`.

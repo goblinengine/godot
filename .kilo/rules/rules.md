@@ -33,6 +33,7 @@ Fork of Godot 4.7.x. Overrides and branding live inside `modules/goblin/`, injec
 1. Module override: `GOBLIN_MODULE_OVERRIDES` in `modules/goblin/SCsub`. Whole module -> goblin copy. Current: `gdscript`.
 2. Core file override: `goblin_add_library()` hook in `modules/goblin/config.py`. Single .cpp swap. Current: `variant_construct.cpp`.
 3. Builder patch: `configure()` in `modules/goblin/config.py`. Build-time generators + binary rename.
+4. Build-time option injection: module-level ARGUMENTS mutation in `modules/goblin/config.py` (import time, first module loop, before the first `opts.Update`) — sets `module_*_enabled=no` for `DISABLE_MODULES`. Used for: the module trim gate (ADR 0012). User CLI wins; custom.py / profile files are beaten (args layer precedence). Regression canary: configure() print.
 
 Procedures: load `overrides` skill.
 

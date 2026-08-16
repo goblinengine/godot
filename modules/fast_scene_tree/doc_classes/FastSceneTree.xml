@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="FastSceneTree" inherits="BaseSceneTree" api_type="core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../doc/class.xsd">
+	<brief_description>
+		Fork-owned re-implementation of the SceneTree contract with new internals (fast-scene-tree-rfc.md / backlog M-14). All tree API, signals and enum constants are inherited from [BaseSceneTree]. Selected per-project via [code]application/run/main_loop_type[/code].
+	</brief_description>
+	<description>
+		[FastSceneTree] is a full re-implementation of the [SceneTree] contract: same public API, same signals, same semantics — different internals (no per-frame process-list copies, no per-call group copies, no string dispatch; deterministic ordering). It is selected as the main loop via the project setting [code]application/run/main_loop_type[/code] (the fork default when this module is present; user-overridable). The editor always uses the base [SceneTree]. The engine compiles nodes against the generic [BaseSceneTree] interface, so every call site resolves through virtual dispatch regardless of which tree is running.
+	</description>
+	<tutorials>
+	</tutorials>
+</class>

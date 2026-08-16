@@ -1,0 +1,15 @@
+#!/usr/bin/env python
+from misc.utility.scons_hints import *
+
+Import("env")
+Import("env_modules")
+
+env_fast_scene_tree = env_modules.Clone()
+
+# FastSceneTree: fork-owned re-implementation of the SceneTree contract
+# (fast-scene-tree-rfc.md / fast-scene-tree-plan.md, backlog M-14). Selected
+# per-project via `application/run/main_loop_type`; the engine compiles nodes
+# against the generic BaseSceneTree interface (scene/main/base_scene_tree.h),
+# so this module is purely additive. Standalone additive module (ADR 0008),
+# standard module anatomy, auto-discovered by the build.
+env_fast_scene_tree.add_source_files(env.modules_sources, "*.cpp")

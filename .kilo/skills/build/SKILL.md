@@ -7,10 +7,7 @@ description: Build + verify Goblin Engine fork with SCons on Windows. Load when 
 
 ## Command
 
-`debug_symbols=yes` is REQUIRED for all test/diagnostic builds (B-14: symbol-less
-binaries made heap-corruption diagnosis a multi-hour detour; a crash dump or live
-debugger is only usable when the PDB exists in `bin/`). The PDB is written next to
-the exe (`bin/goblin.windows.editor.x86_64.pdb`).
+`debug_symbols=yes` is REQUIRED for all test/diagnostic builds (a crash dump or live debugger is only usable when the PDB exists in `bin/`). The PDB is written next to the exe (`bin/goblin.windows.editor.x86_64.pdb`).
 
 ```
 scons platform=windows target=editor module_mono_enabled=no accesskit=no angle=no debug_symbols=yes -j4

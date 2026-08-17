@@ -341,16 +341,6 @@ jobs:
     name: "Web templates"
     runs-on: ubuntu-22.04
     timeout-minutes: 180
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: "Web template (threads, wasm64)"
-            output-name: web_release.zip
-            scons-flags: "threads=yes arch=wasm64"
-          - name: "Web template (no threads, wasm32)"
-            output-name: web_nothreads_release.zip
-            scons-flags: "threads=no arch=wasm32"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -380,19 +370,19 @@ jobs:
             module_text_server_fb_enabled=yes
             module_mono_enabled=no
             use_closure_compiler=yes
-            ${{ matrix.scons-flags }}
+            threads=no arch=wasm32
 
       - name: Stage web template files
         shell: bash
         run: |
           mkdir -p out
-          zipfile=$(ls -1 bin/godot.web.template_release.zip 2>/dev/null | head -n1)
+          zipfile=$(ls -1 bin/godot.web*template_release*.zip 2>/dev/null | head -n1)
           if [ -z "$zipfile" ]; then
             echo "::error::Could not find a goblin web template_release zip in ./bin"
             ls -la bin || true
             exit 1
           fi
-          cp "$zipfile" "out/${{ matrix.output-name }}"
+          cp "$zipfile" out/web_nothreads_release.zip
 
       - name: Upload web templates payload
         uses: actions/upload-artifact@v4
@@ -428,7 +418,6 @@ jobs:
           cp payloads/templates-windows/windows_release_x86_64.exe tpz/windows_release_x86_64.exe
           cp payloads/templates-linux/linux_release.x86_64 tpz/linux_release.x86_64
           cp payloads/templates-macos/macos.zip tpz/macos.zip
-          cp payloads/templates-web/web_release.zip tpz/web_release.zip
           cp payloads/templates-web/web_nothreads_release.zip tpz/web_nothreads_release.zip
           (cd tpz && zip -r ../goblin_export_templates.tpz .)
 

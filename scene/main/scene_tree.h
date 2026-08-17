@@ -103,6 +103,12 @@ private:
 		Vector<Node *> physics_nodes;
 		bool node_order_dirty = true;
 		bool physics_node_order_dirty = true;
+		// Goblin Engine: fast scene tree (M-14) — node removal null-marks the
+		// slot instead of erasing, so process iteration needs no per-frame list
+		// copy; the group compacts lazily when these are set (see scene_tree.cpp
+		// `_process_group()`).
+		bool nodes_need_compaction = false;
+		bool physics_nodes_need_compaction = false;
 		bool removed = false;
 		Node *owner = nullptr;
 		uint64_t last_pass = 0;
@@ -162,6 +168,10 @@ private:
 	StringName node_added_name = "node_added";
 	StringName node_removed_name = "node_removed";
 	StringName node_renamed_name = "node_renamed";
+	// Goblin Engine: fast scene tree (M-14) — cached names for per-frame/per-timer signal emits.
+	StringName process_frame_name = "process_frame";
+	StringName physics_frame_name = "physics_frame";
+	StringName timer_timeout_name = "timeout";
 
 	int64_t current_frame = 0;
 	int nodes_in_tree_count = 0;

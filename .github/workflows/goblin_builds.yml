@@ -23,6 +23,10 @@ jobs:
       - name: Setup Python and SCons
         uses: ./.github/actions/godot-deps
 
+      - name: Install Pillow (for multi-res ICO generation)
+        shell: sh
+        run: python -m pip install Pillow
+
       - name: Download Direct3D 12 SDK components
         shell: sh
         id: d3d12-sdk
@@ -96,19 +100,6 @@ jobs:
           $script = [System.Text.RegularExpressions.Regex]::Replace($script, '(?m)^ {10}', '')
           python -c $script
 
-      - name: Patch Windows editor icon
-        shell: pwsh
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install Pillow
-          python -c "from PIL import Image; import os; src=os.path.join('modules','goblin','main','app_icon.png'); img=Image.open(src).convert('RGBA'); sizes=[(256,256),(128,128),(64,64),(48,48),(32,32),(16,16)]; img.save('goblin.ico', sizes=sizes); print('Wrote goblin.ico')"
-          Invoke-WebRequest -Uri "https://github.com/electron/rcedit/releases/download/v2.0.0/rcedit-x64.exe" -OutFile "rcedit.exe"
-          $targets = Get-ChildItem -Path bin -Filter "*.exe" | Where-Object { $_.Name -match "goblin" -and $_.Name -match "windows\.editor" -and $_.Name -notmatch "template" }
-          if (-not $targets) { throw "No goblin windows editor exe(s) found to patch." }
-          foreach ($t in $targets) {
-            & .\rcedit.exe $t.FullName --set-icon goblin.ico
-          }
-
       - name: Upload version config
         uses: actions/upload-artifact@v4
         with:
@@ -120,6 +111,10 @@ jobs:
         with:
           name: windows-editor
           path: bin/
+          exclude: |
+            bin/build_deps/**
+            bin/*.exp
+            bin/*.lib
 
   windows-templates:
     name: "Windows templates"
@@ -133,6 +128,10 @@ jobs:
 
       - name: Setup Python and SCons
         uses: ./.github/actions/godot-deps
+
+      - name: Install Pillow (for multi-res ICO generation)
+        shell: sh
+        run: python -m pip install Pillow
 
       - name: Download Direct3D 12 SDK components
         shell: sh
@@ -192,15 +191,6 @@ jobs:
           }
           if (-not $tmpl) { throw "Could not find a goblin windows template_release exe in ./bin" }
           Copy-Item $tmpl.FullName out\windows_release_x86_64.exe -Force
-
-      - name: Patch Windows template icon
-        shell: pwsh
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install Pillow
-          python -c "from PIL import Image; import os; src=os.path.join('modules','goblin','main','app_icon.png'); img=Image.open(src).convert('RGBA'); sizes=[(256,256),(128,128),(64,64),(48,48),(32,32),(16,16)]; img.save('goblin.ico', sizes=sizes); print('Wrote goblin.ico')"
-          Invoke-WebRequest -Uri "https://github.com/electron/rcedit/releases/download/v2.0.0/rcedit-x64.exe" -OutFile "rcedit.exe"
-          & .\rcedit.exe (Resolve-Path out\windows_release_x86_64.exe) --set-icon (Resolve-Path goblin.ico)
 
       - name: Upload windows templates payload
         uses: actions/upload-artifact@v4

@@ -15,6 +15,17 @@
 #include "modules/sim/hurtbox_3d.h"
 #include "modules/sim/projectile_3d.h"
 #include "modules/sim/sim_server.h"
+#include "modules/sim/surface_properties.h"
+
+#include "scene/3d/mesh_instance_3d.h"
+#include "scene/3d/physics/static_body_3d.h"
+#include "scene/3d/physics/collision_shape_3d.h"
+#include "scene/main/scene_tree.h"
+#include "scene/resources/3d/primitive_meshes.h"
+#include "scene/resources/3d/sphere_shape_3d.h"
+#include "scene/resources/3d/box_shape_3d.h"
+#include "scene/resources/material.h"
+#include "scene/resources/mesh.h"
 
 namespace SimTest {
 
@@ -473,7 +484,264 @@ TEST_CASE("[Modules][SimServer] stimulus log prunes by retention") {
 
  	// Query should not find stale stimuli.
  	Array results = sim->query_stimulus(Vector3(0, 0, 0), 100.0f, Array(), 0);
- 	CHECK(results.size() == 0);
- }
+	CHECK(results.size() == 0);
+}
 
- } // namespace SimTest
+// =========================================================================
+// S-02: SurfaceProperties Resource + query_surface tests
+// =========================================================================
+
+TEST_CASE("[Modules][SimServer] SurfaceProperties defaults") {
+	Ref<SurfaceProperties> props = memnew(SurfaceProperties);
+	CHECK(props->get_surface_type() == StringName());
+	CHECK(props->get_impact_sound() == StringName());
+	CHECK(props->get_footstep_sound() == StringName());
+	CHECK(props->get_penetration() == 0.0f);
+	CHECK(props->get_absorption() == 1.0f);
+	CHECK(props->get_decal() == StringName());
+	CHECK(props->get_physics_material().is_null());
+}
+
+TEST_CASE("[Modules][SimServer] SurfaceProperties property round-trip") {
+	Ref<SurfaceProperties> props = memnew(SurfaceProperties);
+	props->set_surface_type("metal");
+	props->set_impact_sound("metal_impact");
+	props->set_footstep_sound("metal_footstep");
+	props->set_penetration(0.5f);
+	props->set_absorption(0.3f);
+	props->set_decal("spark");
+
+	CHECK(props->get_surface_type() == "metal");
+	CHECK(props->get_impact_sound() == "metal_impact");
+	CHECK(props->get_footstep_sound() == "metal_footstep");
+	CHECK(props->get_penetration() == 0.5f);
+	CHECK(props->get_absorption() == 0.3f);
+	CHECK(props->get_decal() == "spark");
+}
+
+TEST_CASE("[SceneTree][Combat] SimServer set/get surface properties mapping") {
+	SimServer *sim = SimServer::get_singleton();
+
+	SceneTree *tree = SceneTree::get_singleton();
+	StaticBody3D *body = memnew(StaticBody3D);
+	CollisionShape3D *shape = memnew(CollisionShape3D);
+	Ref<SphereShape3D> sphere;
+	sphere.instantiate();
+	sphere->set_radius(1.0f);
+	shape->set_shape(sphere);
+	body->add_child(shape);
+	body->set_collision_layer(1);
+	body->set_collision_mask(1);
+	tree->get_root()->add_child(body);
+
+	// Assign SurfaceProperties to the physics body.
+	Ref<SurfaceProperties> props = memnew(SurfaceProperties);
+	props->set_surface_type("stone");
+	sim->set_surface_properties(body, props);
+
+	// Raycast from left to right through the sphere at origin.
+	Dictionary result = sim->query_surface(Vector3(-5, 0, 0), Vector3(5, 0, 0), Dictionary());
+	CHECK(bool(result["hit"]) == true);
+	CHECK(Object::cast_to<SurfaceProperties>(result["surface_properties"]) != nullptr);
+	CHECK((StringName)result["surface"] == "stone");
+
+	tree->get_root()->remove_child(body);
+	memdelete(body);
+}
+
+TEST_CASE("[SceneTree][Combat] SimServer query_surface no hit") {
+	SimServer *sim = SimServer::get_singleton();
+
+	// Ray into empty space.
+	Dictionary result = sim->query_surface(Vector3(0, 0, 0), Vector3(0, 1000, 0), Dictionary());
+	CHECK(bool(result["hit"]) == false);
+	CHECK((StringName)result["surface"] == StringName());
+	CHECK((String)result["material_name"] == "default");
+}
+
+// =========================================================================
+// S-03: Ambient field (light channel + stealth readout)
+// =========================================================================
+
+TEST_CASE("[Modules][SimServer] field_create allocates grid with valid RID") {
+	SimServer *sim = SimServer::get_singleton();
+
+	AABB bounds(Vector3(-10, -10, -10), Vector3(20, 20, 20));
+	RID field = sim->field_create(bounds, 2.0f, 1);
+	CHECK(field.is_valid());
+
+	// 20 / 2 = 10 cells per axis.
+	Variant sample = sim->get_field_sample(field, Vector3(0, 0, 0), 0);
+	// Not baked yet → 0.0 (sample returns 0.0 for unbaked field).
+	CHECK(float(sample) == 0.0f);
+
+	// Out-of-bounds position still returns a value (clamps to edge cells).
+	sample = sim->get_field_sample(field, Vector3(100, 100, 100), 0);
+	CHECK(float(sample) == 0.0f);
+}
+
+TEST_CASE("[Modules][SimServer] field_bake populates grid and get_stealth_value reads it") {
+	SimServer *sim = SimServer::get_singleton();
+
+	// Small grid: 1 cell.
+	AABB bounds(Vector3(-1, -1, -1), Vector3(2, 2, 2));
+	RID field = sim->field_create(bounds, 2.0f, 1);
+	CHECK(field.is_valid());
+
+	// Bake with a generous budget — without a SceneTree/physics space,
+	// _field_sample_exposure falls back to ambient_energy (0.2f).
+	sim->field_bake(field, 1000);
+
+	// After bake, sample returns ambient_energy (0.2f default).
+	Variant sample = sim->get_field_sample(field, Vector3(0, 0, 0), 0);
+	CHECK(float(sample) == 0.2f);
+
+	// Stealth value reads the same field.
+	float stealth = sim->get_stealth_value(Vector3(0, 0, 0), nullptr);
+	CHECK(stealth == 0.2f);
+
+	// No field registered → stealth defaults to 0.5f.
+}
+
+TEST_CASE("[Modules][SimServer] field_set_dynamic_source adjusts exposure") {
+	SimServer *sim = SimServer::get_singleton();
+
+	AABB bounds(Vector3(-1, -1, -1), Vector3(2, 2, 2));
+	RID field = sim->field_create(bounds, 2.0f, 1);
+	sim->field_bake(field, 1000);
+
+	// Torch on: +0.5 energy to cells.
+	sim->field_set_dynamic_source(field, RID(), 0.5f);
+	float val = float(sim->get_field_sample(field, Vector3(0, 0, 0), 0));
+	CHECK(val >= 0.2f + 0.5f - 0.001f);
+
+	// Torch off: energy cleared.
+	sim->field_set_dynamic_source(field, RID(), 0.0f);
+	val = float(sim->get_field_sample(field, Vector3(0, 0, 0), 0));
+	CHECK(val == 0.2f);
+}
+
+TEST_CASE("[SceneTree][Combat] field_bake with geometry samples occlusion") {
+	SimServer *sim = SimServer::get_singleton();
+	sim->restore_time_state(Dictionary());
+
+	SceneTree *tree = SceneTree::get_singleton();
+	// Static body blocking the "sky" hemisphere above a cell.
+	StaticBody3D *body = memnew(StaticBody3D);
+	CollisionShape3D *shape = memnew(CollisionShape3D);
+	Ref<BoxShape3D> box;
+	box.instantiate();
+	box->set_size(Vector3(10, 1, 10)); // ceiling overhead
+	shape->set_shape(box);
+	body->add_child(shape);
+	tree->get_root()->add_child(body);
+	// Position the ceiling above the field origin (z=up in Godot is -Y; we use Y as up).
+	body->set_global_position(Vector3(0, 5, 0));
+
+	AABB bounds(Vector3(-1, -1, -1), Vector3(2, 2, 2));
+	RID field = sim->field_create(bounds, 1.0f, 1);
+
+	// Full bake with large budget.
+	sim->field_bake(field, 1000);
+
+	// Cell at origin (y=0) should be partially or fully occluded by the ceiling above.
+	float sample_origin = float(sim->get_field_sample(field, Vector3(0, 0, 0), 0));
+	// Should be lower than a cell that can see the sky.
+	CHECK(sample_origin <= 0.2f + 1.0f); // bounded by ambient + exposure
+
+	tree->get_root()->remove_child(body);
+	memdelete(body);
+}
+
+TEST_CASE("[Modules][SimServer] invalidate_region marks cells dirty for rebake") {
+	SimServer *sim = SimServer::get_singleton();
+
+	AABB bounds(Vector3(-1, -1, -1), Vector3(2, 2, 2));
+	RID field = sim->field_create(bounds, 1.0f, 1);
+	sim->field_bake(field, 1000);
+	// After bake, all cells are clean.
+	CHECK(float(sim->get_field_sample(field, Vector3(0, 0, 0), 0)) == 0.2f);
+
+	// Invalidate region around origin.
+	sim->invalidate_region(field, AABB(Vector3(-0.5, -0.5, -0.5), Vector3(1, 1, 1)));
+
+	// Rebake with small budget — should re-bake the dirty cell and restore ambient.
+	sim->field_bake(field, 1000);
+	CHECK(float(sim->get_field_sample(field, Vector3(0, 0, 0), 0)) == 0.2f);
+}
+
+// =========================================================================
+// S-05: Combat + SimServer integration hooks
+// =========================================================================
+
+TEST_CASE("[SceneTree][Combat] Hitbox3D hit emits impact stimulus") {
+	SimServer *sim = SimServer::get_singleton();
+	sim->restore_time_state(Dictionary());
+
+	// Register a stimulus listener at the origin.
+	TickRecorder recorder;
+	Callable listener_cb = callable_mp(&recorder, &TickRecorder::on_delivery);
+	AABB aoi(Vector3(-20, -20, -20), Vector3(40, 40, 40));
+	RID listener_rid = sim->register_stimulus_listener(aoi, Callable(), listener_cb);
+
+	// Hitbox hits a hurtbox.
+	Hitbox3D hitbox;
+	Hurtbox3D hurtbox;
+	hitbox.set_damage(15.0f);
+	hitbox.set_source(&hitbox);
+	Dictionary hit_data = hitbox.build_hit_data(&hurtbox, Vector3(2, 3, 4));
+	hitbox.register_hit(&hurtbox, hit_data);
+
+	// The stimulus is delivered at post_tick of the next advance_ticks.
+	sim->advance_ticks(1);
+	CHECK(recorder.delivery_count == 1);
+	CHECK((StringName)recorder.last_delivery["type"] == "impact");
+	CHECK(recorder.last_delivery["position"] == Vector3(2, 3, 4));
+	CHECK(float(Dictionary(recorder.last_delivery["payload"])[CombatUtils::KEY_DAMAGE]) == 15.0f);
+
+	sim->unregister_stimulus_listener(listener_rid);
+}
+
+TEST_CASE("[SceneTree][Combat] Projectile3D hit resolves surface properties") {
+	SimServer *sim = SimServer::get_singleton();
+
+	// Static body with a sphere shape at the origin, assigned "metal".
+	SceneTree *tree = SceneTree::get_singleton();
+	StaticBody3D *body = memnew(StaticBody3D);
+	CollisionShape3D *shape = memnew(CollisionShape3D);
+	Ref<SphereShape3D> sphere;
+	sphere.instantiate();
+	sphere->set_radius(1.0f);
+	shape->set_shape(sphere);
+	body->add_child(shape);
+	body->set_collision_layer(1);
+	body->set_collision_mask(1);
+	tree->get_root()->add_child(body);
+
+	Ref<SurfaceProperties> props = memnew(SurfaceProperties);
+	props->set_surface_type("metal");
+	sim->set_surface_properties(body, props);
+
+	// Projectile hits the body.
+	Projectile3D *projectile = memnew(Projectile3D);
+	tree->get_root()->add_child(projectile);
+	projectile->set_damage(30.0f);
+
+	SignalRecorder recorder;
+	projectile->connect("hit", callable_mp(&recorder, &SignalRecorder::on_data));
+
+	// Position the projectile just off the sphere surface and hit it.
+	projectile->set_global_position(Vector3(-2, 0, 0));
+	projectile->_on_hit(Vector3(-1, 0, 0), Vector3(1, 0, 0), body);
+
+	CHECK(recorder.count == 1);
+	CHECK(recorder.last_data.has("surface"));
+	CHECK((StringName)recorder.last_data["surface"] == "metal");
+
+	tree->get_root()->remove_child(projectile);
+	memdelete(projectile);
+	tree->get_root()->remove_child(body);
+	memdelete(body);
+}
+
+} // namespace SimTest

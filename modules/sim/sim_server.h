@@ -10,10 +10,13 @@
 #include "core/config/engine.h"
 #include "core/math/aabb.h"
 #include "core/math/vector3.h"
+#include "core/math/vector3i.h"
+#include "core/math/transform_3d.h"
 #include "core/object/object.h"
 #include "core/object/ref_counted.h"
 #include "core/io/resource.h"
 #include "core/string/string_name.h"
+#include "core/templates/hash_map.h"
 #include "core/templates/list.h"
 #include "core/templates/rid.h"
 #include "core/templates/rid_owner.h"
@@ -90,15 +93,43 @@ class SimServer : public Object {
 	List<StimulusEvent> _stimulus_log;       // tick-tagged event history
 	int64_t _stimulus_log_retention = 10;     // prune events older than N ticks
 
- 	// Listener RIDs: generate via _rid_owner (RID_Alloc<StimulusListener>), data stored inline.
- 	RID_Alloc<StimulusListener> _rid_owner;
- 	uint64_t _next_stimulus_id = 1; // stimulus event RID source (events live in _stimulus_log)
+  	// Listener RIDs: generate via _rid_owner (RID_Alloc<StimulusListener>), data stored inline.
+  	RID_Alloc<StimulusListener> _rid_owner;
+  	uint64_t _next_stimulus_id = 1; // stimulus event RID source (events live in _stimulus_log)
+
+	// --- S-02: Surface registry ---
+	HashMap<ObjectID, Ref<Resource>> _surface_assignments; // ObjectID -> SurfaceProperties
+
+	// --- S-03: Ambient field ---
+	// Per-field grid: uniform cell grid over an AABB. The light channel (index 0)
+	// stores exposure in [0,1] (1 = fully exposed to sky/ambient, 0 = fully occluded).
+	struct SimField {
+		RID rid;
+		AABB bounds;
+		float cell_size = 1.0f;
+		int channels = 1;        // v1 = light only (index 0)
+		int cells_x = 0, cells_y = 0, cells_z = 0;
+		Vector<float> samples;   // cells_x * cells_y * cells_z * channels
+		HashMap<Vector3i, bool> dirty; // dirty cell tracking for rebake
+		float ambient_energy = 0.2f;  // base ambient illumination
+		// Dynamic light sources: cell-key → additive energy modifier (torch etc).
+		HashMap<Vector3i, float> dynamic_add;
+		bool baked = false;
+	};
+	RID_Alloc<SimField> _field_owner; // RID allocator + inline data
 
 	// --- Internal helpers ---
 	void _process_schedule();     // pre_tick: dispatch due schedule entries
 	void _process_stimuli();      // post_tick: deliver stimuli to listeners
 	void _run_cadences();         // run cadence callbacks at tick boundaries
 	void _prune_stimulus_log();   // drop events older than retention window
+
+	// --- S-03 helpers ---
+	SimField *_field_get(RID rid);
+	const SimField *_field_get(RID rid) const;
+	Vector3i _field_cell_index(const SimField *field, const Vector3 &position) const;
+	float _field_sample_channel(const SimField *field, const Vector3 &position, int channel) const;
+	float _field_sample_exposure(SimField *field, const Vector3 &position, float budget_s);
 
 protected:
 	static void _bind_methods();

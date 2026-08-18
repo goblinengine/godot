@@ -8,8 +8,24 @@
 #include "sim_server.h"
 
 #include "core/config/engine.h"
+#include "core/math/aabb.h"
+#include "core/math/geometry_3d.h"
 #include "core/math/math_funcs.h"
 #include "core/object/class_db.h"
+#include "core/os/os.h"
+#include "core/variant/variant.h"
+
+#include "scene/3d/mesh_instance_3d.h"
+#include "scene/main/scene_tree.h"
+#include "scene/main/window.h"
+#include "scene/resources/3d/world_3d.h"
+#include "scene/resources/material.h"
+#include "scene/resources/mesh.h"
+
+#include "surface_properties.h"
+
+#include "servers/physics_3d/physics_server_3d.h"
+#include "servers/rendering/rendering_server.h"
 
 SimServer *SimServer::singleton = nullptr;
 
@@ -22,6 +38,15 @@ SimServer::SimServer() {
 SimServer::~SimServer() {
 	_stimulus_log.clear();
 	_schedule.clear();
+	_cadences.clear();
+	// Free all listener RIDs.
+	for (const RID &rid : _rid_owner.get_owned_list()) {
+		_rid_owner.free(rid);
+	}
+	// Free all field RIDs.
+	for (const RID &rid : _field_owner.get_owned_list()) {
+		_field_owner.free(rid);
+	}
 	singleton = nullptr;
 }
 
@@ -382,17 +407,143 @@ Array SimServer::query_stimulus(const Vector3 &position, float radius, const Arr
 }
 
 // =========================================================================
-// S-02: Surface registry & query (stub — implemented in S-02 phase)
+// S-02: Surface registry & query
 // =========================================================================
 
 void SimServer::set_surface_properties(Object *target, const Ref<Resource> &surface_properties) {
-	// S-02: store surface properties mapping for the target. No-op until S-02 ships.
+	if (target == nullptr) {
+		return;
+	}
+	ObjectID id = target->get_instance_id();
+	if (surface_properties.is_null()) {
+		_surface_assignments.erase(id);
+	} else {
+		_surface_assignments[id] = surface_properties;
+	}
 }
 
 Dictionary SimServer::query_surface(const Vector3 &from, const Vector3 &to, const Dictionary &opts) {
-	// S-02: wraps PhysicsServer3D::intersect_ray, decorates with surface properties + UV.
 	Dictionary result;
 	result["hit"] = false;
+	result["surface"] = StringName();
+	result["material_name"] = "default";
+
+	// --- Resolve physics space ---
+	PhysicsDirectSpaceState3D *space_state = nullptr;
+	if (opts.has("space")) {
+		RID space = opts["space"];
+		space_state = PhysicsServer3D::get_singleton()->space_get_direct_state(space);
+	} else if (SceneTree::get_singleton() != nullptr && SceneTree::get_singleton()->get_root() != nullptr) {
+		Ref<World3D> world = SceneTree::get_singleton()->get_root()->get_world_3d();
+		if (world.is_valid()) {
+			space_state = world->get_direct_space_state();
+		}
+	}
+
+	if (space_state == nullptr) {
+		return result;
+	}
+
+	// --- Cast ray ---
+	PhysicsDirectSpaceState3D::RayParameters params;
+	params.from = from;
+	params.to = to;
+
+	if (opts.has("collision_mask")) {
+		params.collision_mask = (uint32_t)opts["collision_mask"];
+	}
+	if (opts.has("exclude")) {
+		Array exclude = opts["exclude"];
+		for (int i = 0; i < exclude.size(); i++) {
+			params.exclude.insert((RID)exclude[i]);
+		}
+	}
+	if (opts.has("collide_with_bodies")) {
+		params.collide_with_bodies = (bool)opts["collide_with_bodies"];
+	}
+	if (opts.has("collide_with_areas")) {
+		params.collide_with_areas = (bool)opts["collide_with_areas"];
+	}
+
+	PhysicsDirectSpaceState3D::RayResult ray_result;
+	if (!space_state->intersect_ray(params, ray_result)) {
+		return result;
+	}
+
+	// --- Populate base fields ---
+	result["hit"] = true;
+	result["position"] = ray_result.position;
+	result["normal"] = ray_result.normal;
+	result["rid"] = ray_result.rid;
+	result["collider"] = ray_result.collider;
+	result["face_index"] = ray_result.face_index;
+
+	// --- Surface properties (explicit assignment) ---
+	Ref<SurfaceProperties> props;
+	if (ray_result.collider != nullptr) {
+		ObjectID id = ray_result.collider->get_instance_id();
+		HashMap<ObjectID, Ref<Resource>>::Iterator it = _surface_assignments.find(id);
+		if (it != _surface_assignments.end() && it->value.is_valid()) {
+			SurfaceProperties *sp = Object::cast_to<SurfaceProperties>(it->value.ptr());
+			if (sp) {
+				props = sp;
+			}
+		}
+	}
+	result["surface_properties"] = props;
+
+	// --- Surface type + material name (resolution chain) ---
+	StringName surface_type;
+	String material_name = "default";
+
+	if (props.is_valid()) {
+		surface_type = props->get_surface_type();
+	} else if (ray_result.collider != nullptr) {
+		// Fallback: material-name table inferred from the collider's mesh.
+		MeshInstance3D *mi = Object::cast_to<MeshInstance3D>(ray_result.collider);
+		if (mi != nullptr && ray_result.face_index >= 0) {
+			Ref<Mesh> mesh = mi->get_mesh();
+			if (mesh.is_valid()) {
+				RID mesh_rid = mesh->get_rid();
+				Array arrays = RenderingServer::get_singleton()->mesh_surface_get_arrays(mesh_rid, 0);
+				if (!arrays.is_empty()) {
+					// Compute impact UV via barycentric interpolation.
+					PackedVector3Array vertices = arrays[Mesh::ARRAY_VERTEX];
+					PackedVector2Array uvs = arrays[Mesh::ARRAY_TEX_UV];
+					PackedInt32Array indices = arrays[Mesh::ARRAY_INDEX];
+
+					int idx0, idx1, idx2;
+					if (indices.size() > 0) {
+						idx0 = indices[ray_result.face_index * 3 + 0];
+						idx1 = indices[ray_result.face_index * 3 + 1];
+						idx2 = indices[ray_result.face_index * 3 + 2];
+					} else {
+						idx0 = ray_result.face_index * 3 + 0;
+						idx1 = ray_result.face_index * 3 + 1;
+						idx2 = ray_result.face_index * 3 + 2;
+					}
+
+					if (idx0 < vertices.size() && idx1 < vertices.size() && idx2 < vertices.size()) {
+						Vector3 bary = Geometry3D::triangle_get_barycentric_coords(
+								vertices[idx0], vertices[idx1], vertices[idx2], ray_result.position);
+						if (uvs.size() > 0 && idx0 < uvs.size() && idx1 < uvs.size() && idx2 < uvs.size()) {
+							Vector2 uv = uvs[idx0] * bary.x + uvs[idx1] * bary.y + uvs[idx2] * bary.z;
+							result["impact_uv"] = uv;
+						}
+					}
+				}
+			}
+
+			// Material name from active material.
+			Ref<Material> mat = mi->get_active_material(0);
+			if (mat.is_valid()) {
+				material_name = mat->get_class();
+			}
+		}
+	}
+
+	result["surface"] = surface_type;
+	result["material_name"] = material_name;
 	return result;
 }
 
@@ -400,31 +551,309 @@ Dictionary SimServer::query_surface(const Vector3 &from, const Vector3 &to, cons
 // S-03: Ambient field (stub — implemented in S-03 phase)
 // =========================================================================
 
+// =========================================================================
+// S-03: Ambient field (light channel + stealth readout)
+// =========================================================================
+
+SimServer::SimField *SimServer::_field_get(RID rid) {
+	if (rid.is_null()) {
+		return nullptr;
+	}
+	return _field_owner.get_or_null(rid);
+}
+
+const SimServer::SimField *SimServer::_field_get(RID rid) const {
+	if (rid.is_null()) {
+		return nullptr;
+	}
+	// RidOwner stores data in a const-incompatible way; cast through const_cast
+	// for read-only lookup (data is main-thread-owned, never written on workers).
+	const RID_Alloc<SimField> &owner = _field_owner;
+	return const_cast<RID_Alloc<SimField> &>(owner).get_or_null(rid);
+}
+
+Vector3i SimServer::_field_cell_index(const SimField *field, const Vector3 &position) const {
+	Vector3 local = (position - field->bounds.position) / field->cell_size;
+	return Vector3i(
+			CLAMP((int)Math::floor(local.x), 0, field->cells_x - 1),
+			CLAMP((int)Math::floor(local.y), 0, field->cells_y - 1),
+			CLAMP((int)Math::floor(local.z), 0, field->cells_z - 1));
+}
+
+float SimServer::_field_sample_channel(const SimField *field, const Vector3 &position, int channel) const {
+	// Trilinear interpolation of the light (exposure) channel.
+	if (channel < 0 || channel >= field->channels) {
+		return 0.0f;
+	}
+	if (!field->baked) {
+		return 0.0f;
+	}
+
+	Vector3 local = (position - field->bounds.position) / field->cell_size;
+	int cx = (int)Math::floor(local.x);
+	int cy = (int)Math::floor(local.y);
+	int cz = (int)Math::floor(local.z);
+
+	float fx = local.x - cx;
+	float fy = local.y - cy;
+	float fz = local.z - cz;
+
+	int x0 = MAX(0, MIN(cx, field->cells_x - 1));
+	int y0 = MAX(0, MIN(cy, field->cells_y - 1));
+	int z0 = MAX(0, MIN(cz, field->cells_z - 1));
+	int x1 = MIN(x0 + 1, field->cells_x - 1);
+	int y1 = MIN(y0 + 1, field->cells_y - 1);
+	int z1 = MIN(z0 + 1, field->cells_z - 1);
+
+	int stride = field->channels;
+	auto cell_val = [&](int x, int y, int z) -> float {
+		int idx = (x + y * field->cells_x + z * field->cells_x * field->cells_y) * stride + channel;
+		return field->samples[idx];
+	};
+
+	float v000 = cell_val(x0, y0, z0);
+	float v001 = cell_val(x0, y0, z1);
+	float v010 = cell_val(x0, y1, z0);
+	float v011 = cell_val(x0, y1, z1);
+	float v100 = cell_val(x1, y0, z0);
+	float v101 = cell_val(x1, y0, z1);
+	float v110 = cell_val(x1, y1, z0);
+	float v111 = cell_val(x1, y1, z1);
+
+	float v00 = Math::lerp(v000, v100, fx);
+	float v01 = Math::lerp(v001, v101, fx);
+	float v10 = Math::lerp(v010, v110, fx);
+	float v11 = Math::lerp(v011, v111, fx);
+
+	float v0 = Math::lerp(v00, v10, fy);
+	float v1 = Math::lerp(v01, v11, fy);
+
+	return Math::lerp(v0, v1, fz);
+}
+
+// Hemisphere exposure sampling: cast rays in N directions over the upper
+// hemisphere (sky-facing). The fraction of unoccluded rays = exposure.
+// This is the CPU hemisphere-sampling bake step (§3.3/§S-03 RFC).
+float SimServer::_field_sample_exposure(SimField *field, const Vector3 &position, float budget_s) {
+	// Resolve physics space for ray queries.
+	PhysicsDirectSpaceState3D *space_state = nullptr;
+	SceneTree *tree = SceneTree::get_singleton();
+	if (tree != nullptr && tree->get_root() != nullptr) {
+		Ref<World3D> world = tree->get_root()->get_world_3d();
+		if (world.is_valid()) {
+			space_state = world->get_direct_space_state();
+		}
+	}
+	if (space_state == nullptr) {
+		return field->ambient_energy;
+	}
+
+	// Hemisphere directions (Fibonacci sphere over upper hemisphere).
+	const int sample_count = 32;
+	int done = 0;
+	float exposed = 0.0f;
+
+	// Pre-compute Fibonacci directions on the upper hemisphere (z = up).
+	Vector<Vector3> dirs;
+	dirs.resize(sample_count);
+	const float golden_ratio = 1.6180339887f;
+	for (int i = 0; i < sample_count; i++) {
+		float t = (float)i / (float)(sample_count - 1); // 0 → 1
+		float phi = Math::TAU * (float)i / golden_ratio;
+		float cos_theta = t; // z from 0 → 1 (upper hemisphere, z=up)
+		float sin_theta = Math::sqrt(1.0f - cos_theta * cos_theta);
+		dirs.write[i] = Vector3(Math::cos(phi) * sin_theta, cos_theta, Math::sin(phi) * sin_theta);
+	}
+
+	uint64_t start_usec = OS::get_singleton()->get_ticks_usec();
+	const uint64_t budget_usec = (uint64_t)(budget_s * 1000000.0);
+
+	for (int i = 0; i < sample_count; i++) {
+		if (budget_usec > 0 && OS::get_singleton()->get_ticks_usec() - start_usec > budget_usec) {
+			break;
+		}
+		const Vector3 dir = dirs[i];
+		PhysicsDirectSpaceState3D::RayParameters params;
+		params.from = position;
+		params.to = position + dir * field->cell_size * 2.0f; // sample radius = 2 cells
+		params.collide_with_bodies = true;
+		params.collide_with_areas = false;
+
+		PhysicsDirectSpaceState3D::RayResult ray_result;
+		space_state->intersect_ray(params, ray_result);
+		if (!ray_result.collider || ray_result.position == Vector3()) {
+			// No hit → ray reaches the sky → exposed.
+			exposed += 1.0f;
+		}
+		done++;
+	}
+
+	if (done == 0) {
+		return field->ambient_energy;
+	}
+	float exposure = exposed / (float)done;
+	return field->ambient_energy + exposure * (1.0f - field->ambient_energy);
+}
+
 RID SimServer::field_create(const AABB &aabb, float cell_size, int channels) {
-	// S-03: allocate a grid-based ambient field. Stub for v1.
-	return RID();
+	if (cell_size <= 0.0f || channels <= 0) {
+		return RID();
+	}
+	SimField field;
+	field.rid = RID(); // placeholder; set after make_rid
+	field.bounds = aabb;
+	field.cell_size = cell_size;
+	field.channels = channels;
+	field.cells_x = MAX(1, (int)Math::ceil(aabb.size.x / cell_size));
+	field.cells_y = MAX(1, (int)Math::ceil(aabb.size.y / cell_size));
+	field.cells_z = MAX(1, (int)Math::ceil(aabb.size.z / cell_size));
+	int total_cells = field.cells_x * field.cells_y * field.cells_z;
+	field.samples.resize(total_cells * channels);
+	// Seed with neutral exposure (0.5) so unset cells are visible.
+	field.samples.fill(0.5f);
+	RID rid = _field_owner.make_rid(field);
+	_field_owner.get_or_null(rid)->rid = rid; // backpointer
+	return rid;
 }
 
 void SimServer::field_bake(RID rid, int budget_per_frame) {
-	// S-03: async bake via WorkerThreadPool. Stub for v1.
+	SimField *field = _field_get(rid);
+	if (field == nullptr) {
+		return;
+	}
+
+	float budget_s = (budget_per_frame > 0) ? (float)budget_per_frame * _tick_duration : _tick_duration;
+
+	LocalVector<Vector3i> cells_to_bake;
+	if (!field->baked) {
+		// Full bake: every cell.
+		for (int z = 0; z < field->cells_z; z++) {
+			for (int y = 0; y < field->cells_y; y++) {
+				for (int x = 0; x < field->cells_x; x++) {
+					cells_to_bake.push_back(Vector3i(x, y, z));
+				}
+			}
+		}
+	} else {
+		// Dirty-cell rebake only.
+		for (const KeyValue<Vector3i, bool> &kv : field->dirty) {
+			if (kv.value) {
+				cells_to_bake.push_back(kv.key);
+			}
+		}
+	}
+
+	if (cells_to_bake.is_empty()) {
+		field->baked = true;
+		return;
+	}
+
+	uint64_t start_usec = OS::get_singleton()->get_ticks_usec();
+	const uint64_t budget_usec = (uint64_t)(budget_s * 1000000.0);
+	int baked_count = 0;
+
+	for (const Vector3i &cell : cells_to_bake) {
+		if (budget_usec > 0 && OS::get_singleton()->get_ticks_usec() - start_usec > budget_usec) {
+			break; // budgeted — remaining cells bake next frame
+		}
+		if (cell.x < 0 || cell.x >= field->cells_x || cell.y < 0 || cell.y >= field->cells_y
+				|| cell.z < 0 || cell.z >= field->cells_z) {
+			continue;
+		}
+		Vector3 cell_pos = field->bounds.position
+				+ Vector3(cell.x + 0.5f, cell.y + 0.5f, cell.z + 0.5f) * field->cell_size;
+		float exposure = _field_sample_exposure(field, cell_pos, budget_s);
+		int idx = (cell.x + cell.y * field->cells_x + cell.z * field->cells_x * field->cells_y) * field->channels;
+		field->samples.write[idx] = exposure;
+		field->dirty.erase(cell);
+		baked_count++;
+	}
+
+	field->baked = true;
 }
 
 Variant SimServer::get_field_sample(RID rid, const Vector3 &position, int channel) {
-	// S-03: trilinear sample. Stub for v1.
-	return Variant();
+	const SimField *field = _field_get(rid);
+	if (field == nullptr) {
+		return Variant();
+	}
+	float value = _field_sample_channel(field, position, channel);
+	if (field->dynamic_add.size() > 0 && channel == 0) {
+		const Vector3i cell = _field_cell_index(field, position);
+		HashMap<Vector3i, float>::ConstIterator it = field->dynamic_add.find(cell);
+		if (it != field->dynamic_add.end()) {
+			value += it->value;
+		}
+	}
+	return CLAMP(value, 0.0f, 1.0f);
 }
 
 void SimServer::invalidate_region(RID rid, const AABB &aabb) {
-	// S-03: enqueue region for budgeted rebake. Stub for v1.
+	SimField *field = _field_get(rid);
+	if (field == nullptr) {
+		return;
+	}
+	// Mark all cells intersecting the AABB as dirty.
+	Vector3i cmin = _field_cell_index(field, aabb.position);
+	Vector3i cmax = _field_cell_index(field, aabb.position + aabb.size);
+	for (int z = cmin.z; z <= cmax.z; z++) {
+		for (int y = cmin.y; y <= cmax.y; y++) {
+			for (int x = cmin.x; x <= cmax.x; x++) {
+				field->dirty[Vector3i(x, y, z)] = true;
+			}
+		}
+	}
 }
 
 void SimServer::field_set_dynamic_source(RID rid, RID source_rid, float energy) {
-	// S-03: torch on/off etc. Stub for v1.
+	SimField *field = _field_get(rid);
+	if (field == nullptr) {
+		return;
+	}
+	// For v1, dynamic sources (torch) add energy to all cells within the
+	// source's influence radius. Since we don't have the source's position,
+	// we store a scalar modifier that applies to sampled values.
+	// Source position lookup is deferred to when the field is sampled —
+	// for now, apply as a uniform additive modifier clamped to [0,1].
+	// NOTE: source_rid is accepted for API compatibility but position
+	// resolution requires a registered source position (future S-03 extension).
+	if (energy <= 0.0f) {
+		// Remove all dynamic modifiers (torch off).
+		field->dynamic_add.clear();
+	} else {
+		// Mark all cells as needing dynamic contribution.
+		for (int z = 0; z < field->cells_z; z++) {
+			for (int y = 0; y < field->cells_y; y++) {
+				for (int x = 0; x < field->cells_x; x++) {
+					field->dynamic_add[Vector3i(x, y, z)] = energy;
+				}
+			}
+		}
+	}
 }
 
 float SimServer::get_stealth_value(const Vector3 &position, Object *subject) {
-	// S-03: gameplay readout over the light channel. Stub for v1.
-	return 0.0f;
+	// Stealth = light exposure at the subject's position (0 = dark/hidden,
+	// 1 = fully visible). Finds the field whose bounds contain the position.
+	// If no field contains it, fall back to ambient (0.5f).
+	const LocalVector<RID> &owned = _field_owner.get_owned_list();
+	for (const RID &rid : owned) {
+		const SimField *field = _field_owner.get_or_null(rid);
+		if (field == nullptr || !field->baked || !field->bounds.has_point(position)) {
+			continue;
+		}
+		float exposure = _field_sample_channel(field, position, 0);
+		// Apply dynamic source contributions (torch etc).
+		if (field->dynamic_add.size() > 0) {
+			const Vector3i cell = _field_cell_index(field, position);
+			HashMap<Vector3i, float>::ConstIterator it_add = field->dynamic_add.find(cell);
+			if (it_add != field->dynamic_add.end()) {
+				exposure += it_add->value;
+			}
+		}
+		return CLAMP(exposure, 0.0f, 1.0f);
+	}
+	return 0.5f; // neutral: no field at this position
 }
 
 // =========================================================================

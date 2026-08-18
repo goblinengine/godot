@@ -14,6 +14,7 @@
 #include "hurtbox_3d.h"
 #include "projectile_3d.h"
 #include "sim_server.h"
+#include "surface_properties.h"
 
 #ifdef TESTS_ENABLED
 #include "tests/test_sim.h"
@@ -25,6 +26,7 @@ void initialize_sim_module(ModuleInitializationLevel p_level) {
 		GDREGISTER_CLASS(Hurtbox3D);
 		GDREGISTER_CLASS(Projectile3D);
 		GDREGISTER_CLASS(SimServer);
+		GDREGISTER_CLASS(SurfaceProperties);
 		Engine::get_singleton()->add_singleton(
 				Engine::Singleton("SimServer", memnew(SimServer)));
 	}

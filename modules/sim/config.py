@@ -13,6 +13,7 @@ def get_doc_classes():
     return [
         # SimServer (S-01..S-05) — systemic / immersive-sim server
         "SimServer",
+        "SurfaceProperties",
         # Combat subsystem (C-14, moved from modules/combat/)
         "Hitbox3D",
         "Hurtbox3D",

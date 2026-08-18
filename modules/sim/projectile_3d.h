@@ -70,7 +70,6 @@ class Projectile3D : public Area3D {
 	void _setup_sweep_cast();
 	bool _update_sweep(double p_delta, Vector3 &r_hit_position, Vector3 &r_hit_normal,
 			Object *&r_hit_collider);
-	void _on_hit(const Vector3 &p_position, const Vector3 &p_normal, Object *p_collider);
 	void _destroy();
 
 protected:
@@ -82,6 +81,9 @@ public:
 	void _physics_process(double p_delta);
 	// Reflects velocity off a surface. Public for testability.
 	void _bounce(const Vector3 &p_normal);
+	// Handles a collision hit: emits [signal hit], forwards to hurtboxes,
+	// resolves surface properties (S-05). Public for testability.
+	void _on_hit(const Vector3 &p_position, const Vector3 &p_normal, Object *p_collider);
 
 public:
 	// Starts the projectile at p_origin traveling along p_direction at

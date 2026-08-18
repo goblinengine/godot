@@ -13,6 +13,7 @@
 
 #include "combat_utils.h"
 #include "hurtbox_3d.h"
+#include "sim_server.h"
 
 void Projectile3D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("fire", "origin", "direction"), &Projectile3D::fire);
@@ -172,6 +173,28 @@ bool Projectile3D::_update_sweep(double p_delta, Vector3 &r_hit_position, Vector
 void Projectile3D::_on_hit(const Vector3 &p_position, const Vector3 &p_normal, Object *p_collider) {
 	Dictionary hit_data = CombatUtils::build_hit_data(damage, knockback, damage_types, element,
 			source, p_position, p_normal, p_collider, velocity);
+
+	// S-05: resolve surface properties at the impact point for
+	// surface-specific effects/sounds. The ray runs from just off the
+	// surface back to the hit point, excluding the projectile itself.
+	SimServer *sim = SimServer::get_singleton();
+	if (sim != nullptr) {
+		Dictionary surface_opts;
+		Array exclude;
+		exclude.append(get_rid());
+		surface_opts["exclude"] = exclude;
+		Dictionary surface_result = sim->query_surface(get_global_position(), p_position, surface_opts);
+		if (surface_result.has("surface")) {
+			hit_data["surface"] = surface_result["surface"];
+		}
+		if (surface_result.has("material_name")) {
+			hit_data["material_name"] = surface_result["material_name"];
+		}
+		if (surface_result.has("impact_uv")) {
+			hit_data["impact_uv"] = surface_result["impact_uv"];
+		}
+	}
+
 	emit_signal(SNAME("hit"), hit_data);
 
 	// Forward to receiver-side hurtboxes so health systems see the hit

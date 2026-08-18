@@ -14,6 +14,7 @@
 
 #include "combat_utils.h"
 #include "hurtbox_3d.h"
+#include "sim_server.h"
 
 void Hitbox3D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("build_hit_data", "collider", "position", "normal", "velocity"),
@@ -74,6 +75,20 @@ void Hitbox3D::register_hit(Hurtbox3D *p_hurtbox, const Dictionary &p_hit_data) 
 	}
 	p_hurtbox->apply_hit(this, p_hit_data);
 	emit_signal(SNAME("hit"), p_hurtbox, p_hit_data);
+
+	// S-05: emit an impact stimulus on the SimServer bus so perception
+	// systems (hearing, ambient alerts) react to combat without polling.
+	// The payload carries the loudness proxy (damage) and attribution.
+	SimServer *sim = SimServer::get_singleton();
+	if (sim != nullptr) {
+		const Vector3 position = p_hit_data[CombatUtils::KEY_POSITION];
+		Dictionary payload;
+		payload[CombatUtils::KEY_DAMAGE] = p_hit_data[CombatUtils::KEY_DAMAGE];
+		payload[CombatUtils::KEY_ELEMENT] = p_hit_data[CombatUtils::KEY_ELEMENT];
+		payload[CombatUtils::KEY_SOURCE] = this;
+		payload[CombatUtils::KEY_COLLIDER] = p_hurtbox;
+		sim->emit_stimulus("impact", position, 5.0f, payload, Dictionary());
+	}
 }
 
 void Hitbox3D::reset() {

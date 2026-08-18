@@ -10,7 +10,7 @@
 #include "core/variant/dictionary.h"
 #include "core/variant/variant.h"
 
-// Shared hit-data contract for the combat module.
+// Shared hit-data contract for the sim module's combat subsystem.
 //
 // Every damage event in the module travels as a Dictionary with a stable key
 // set, so Hitbox3D, Hurtbox3D, and Projectile3D interoperate and game code
@@ -52,7 +52,6 @@ inline Dictionary build_hit_data(float p_damage, float p_knockback, const Array 
 	data[KEY_SOURCE] = p_source;
 	data[KEY_POSITION] = p_position;
 	data[KEY_NORMAL] = p_normal;
-	data[KEY_COLLIDER] = p_collider;
 	data[KEY_VELOCITY] = p_velocity;
 	return data;
 }

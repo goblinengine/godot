@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+
 def can_build(env, platform):
     return True
 
@@ -10,6 +11,9 @@ def configure(env):
 
 def get_doc_classes():
     return [
+        # SimServer (S-01..S-05) — systemic / immersive-sim server
+        "SimServer",
+        # Combat subsystem (C-14, moved from modules/combat/)
         "Hitbox3D",
         "Hurtbox3D",
         "Projectile3D",

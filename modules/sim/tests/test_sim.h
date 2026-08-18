@@ -1,5 +1,5 @@
 /**************************************************************************/
-/*  test_combat.h                                                         */
+/*  test_sim.h                                                            */
 /**************************************************************************/
 /*                         This file is part of:                          */
 /*                            GOBLIN ENGINE                               */
@@ -10,12 +10,13 @@
 #include "core/object/callable_mp.h"
 #include "tests/test_macros.h"
 
-#include "modules/combat/combat_utils.h"
-#include "modules/combat/hitbox_3d.h"
-#include "modules/combat/hurtbox_3d.h"
-#include "modules/combat/projectile_3d.h"
+#include "modules/sim/combat_utils.h"
+#include "modules/sim/hitbox_3d.h"
+#include "modules/sim/hurtbox_3d.h"
+#include "modules/sim/projectile_3d.h"
+#include "modules/sim/sim_server.h"
 
-namespace CombatTest {
+namespace SimTest {
 
 // Minimal signal recorder: counts emissions and captures the last hit data.
 class SignalRecorder : public Object {
@@ -262,4 +263,217 @@ TEST_CASE("[SceneTree][Combat] Projectile3D hit data contract") {
 	CHECK(hit_data.has(CombatUtils::KEY_VELOCITY));
 }
 
-} // namespace CombatTest
+// =========================================================================
+// S-01: SimServer clock, cadence, and stimulus bus tests
+// =========================================================================
+
+// Recorder with a callback for schedule dispatch and
+// a Dictionary-arg callback for stimulus listener delivery.
+class TickRecorder : public Object {
+	GDCLASS(TickRecorder, Object);
+
+public:
+	int call_count = 0;
+	int delivery_count = 0;
+	Dictionary last_delivery;
+
+ 	void on_tick(const StringName &p_kind) {
+ 		call_count++;
+ 	}
+
+ 	void on_cadence() {
+ 		call_count++;
+ 	}
+
+ 	void on_delivery(const Dictionary &p_data) {
+		delivery_count++;
+		last_delivery = p_data;
+	}
+};
+
+TEST_CASE("[Modules][SimServer] clock starts at tick 0") {
+	CHECK(SimServer::get_singleton() != nullptr);
+	CHECK(SimServer::get_singleton()->get_tick() == 0);
+}
+
+TEST_CASE("[Modules][SimServer] schedule_at_tick dispatches at target tick") {
+	SimServer *sim = SimServer::get_singleton();
+	sim->restore_time_state(Dictionary()); // reset to tick 0
+
+	TickRecorder recorder;
+	Callable cb = callable_mp(&recorder, &TickRecorder::on_tick);
+
+	sim->schedule_at_tick(5, "test_tick", cb, "my_tag", 0);
+
+	CHECK(sim->get_tick() == 0);
+	CHECK(sim->is_deadline_active(5)); // pending, not yet dispatched
+
+	sim->advance_ticks(5);
+	CHECK(sim->get_tick() == 5);
+	CHECK(recorder.call_count == 1);
+	CHECK(!sim->is_deadline_active(5)); // dispatched and removed
+}
+
+TEST_CASE("[Modules][SimServer] schedule_in_seconds converts correctly") {
+	SimServer *sim = SimServer::get_singleton();
+	sim->restore_time_state(Dictionary());
+
+	sim->schedule_in_seconds(1.0, "test_secs", Callable(), "t1", 0.0);
+
+	CHECK(sim->is_deadline_active(60)); // 1.0s / (1/60s) = 60 ticks
+	CHECK(sim->deadline_remaining_seconds(60) == 1.0);
+
+	sim->advance_ticks(60);
+	CHECK(!sim->is_deadline_active(60));
+}
+
+TEST_CASE("[Modules][SimServer] cancel_by_tag removes matching entries") {
+	SimServer *sim = SimServer::get_singleton();
+	sim->restore_time_state(Dictionary());
+
+	Callable noop;
+	sim->schedule_at_tick(100, "kind_a", noop, "group1", 0);
+	sim->schedule_at_tick(200, "kind_b", noop, "group1", 0);
+	sim->schedule_at_tick(300, "kind_c", noop, "group2", 0);
+
+	CHECK(sim->cancel_by_tag("group1") == 2);
+	CHECK(!sim->is_deadline_active(100));
+	CHECK(!sim->is_deadline_active(200));
+	CHECK(sim->is_deadline_active(300));
+}
+
+TEST_CASE("[Modules][SimServer] repeat schedule re-arms") {
+	SimServer *sim = SimServer::get_singleton();
+	sim->restore_time_state(Dictionary());
+
+	TickRecorder recorder;
+	Callable cb = callable_mp(&recorder, &TickRecorder::on_tick);
+
+	// Repeat every 10 ticks, due at tick 10.
+	sim->schedule_at_tick(10, "repeat_kind", cb, "repeat", 10);
+
+	sim->advance_ticks(10);
+	CHECK(recorder.call_count == 1);
+	CHECK(sim->is_deadline_active(20)); // re-scheduled
+
+	sim->advance_ticks(10);
+	CHECK(recorder.call_count == 2);
+	CHECK(sim->is_deadline_active(30));
+}
+
+TEST_CASE("[Modules][SimServer] register_cadence fires at correct rate") {
+	SimServer *sim = SimServer::get_singleton();
+	sim->restore_time_state(Dictionary());
+
+	TickRecorder recorder;
+	Callable cb = callable_mp(&recorder, &TickRecorder::on_cadence);
+
+	// 30 Hz = every 2 ticks at 60 Hz.
+	sim->register_cadence("test_30hz", 30.0, cb);
+
+	sim->advance_ticks(2);
+	CHECK(recorder.call_count == 1);
+	sim->advance_ticks(2);
+	CHECK(recorder.call_count == 2);
+
+	sim->unregister_cadence("test_30hz");
+}
+
+TEST_CASE("[Modules][SimServer] time state save/restore round-trip") {
+	SimServer *sim = SimServer::get_singleton();
+	sim->restore_time_state(Dictionary());
+
+	sim->advance_ticks(100);
+	Dictionary state = sim->get_time_state();
+	CHECK((int)state["tick"] == 100);
+
+	sim->restore_time_state(state);
+	CHECK(sim->get_tick() == 100);
+	CHECK(sim->now_seconds() == 100.0 * (1.0 / 60.0));
+}
+
+TEST_CASE("[Modules][SimServer] schedule state save/restore round-trip") {
+	SimServer *sim = SimServer::get_singleton();
+	sim->restore_time_state(Dictionary());
+	sim->restore_schedule_state(Dictionary());
+
+	Callable noop;
+	sim->schedule_at_tick(50, "saved_kind", noop, "saved_tag", 0);
+	CHECK(sim->is_deadline_active(50));
+
+	Dictionary sched_state = sim->get_schedule_state();
+	CHECK(Array(sched_state["entries"]).size() == 1);
+
+	sim->restore_schedule_state(sched_state);
+	CHECK(sim->is_deadline_active(50));
+}
+
+TEST_CASE("[Modules][SimServer] stimulus bus emit and query") {
+	SimServer *sim = SimServer::get_singleton();
+	sim->restore_time_state(Dictionary());
+
+	Dictionary payload;
+	payload["source"] = "test";
+
+	RID sid = sim->emit_stimulus("sound", Vector3(0, 0, 0), 5.0f, payload, Dictionary());
+	CHECK(sid.is_valid());
+
+	// Query at origin, radius 10, for "sound" type.
+	Array types;
+	types.append("sound");
+	Array results = sim->query_stimulus(Vector3(0, 0, 0), 10.0f, types, 0);
+	CHECK(results.size() == 1);
+
+	Dictionary result = results[0];
+	CHECK((StringName)result["type"] == "sound");
+	CHECK(result["position"] == Vector3(0, 0, 0));
+	CHECK(float(result["radius"]) == 5.0f);
+
+	// Query with since_tick > emit_tick returns nothing.
+	results = sim->query_stimulus(Vector3(0, 0, 0), 10.0f, types, 100);
+	CHECK(results.size() == 0);
+}
+
+TEST_CASE("[Modules][SimServer] stimulus listener delivery") {
+	SimServer *sim = SimServer::get_singleton();
+	sim->restore_time_state(Dictionary());
+
+	TickRecorder recorder;
+	Callable listener_cb = callable_mp(&recorder, &TickRecorder::on_delivery);
+
+	AABB aoi(Vector3(-10, -10, -10), Vector3(20, 20, 20));
+	RID listener_rid = sim->register_stimulus_listener(aoi, Callable(), listener_cb);
+	CHECK(listener_rid.is_valid());
+
+	// Emit stimulus inside the listener's area.
+	sim->emit_stimulus("sound", Vector3(0, 0, 0), 1.0f, Dictionary(), Dictionary());
+	sim->advance_ticks(1);
+
+	CHECK(recorder.delivery_count == 1);
+	CHECK((StringName)recorder.last_delivery["type"] == "sound");
+
+	// Emit stimulus outside the listener's area.
+	sim->emit_stimulus("sound", Vector3(100, 0, 0), 1.0f, Dictionary(), Dictionary());
+	sim->advance_ticks(1);
+
+	CHECK(recorder.delivery_count == 1); // still only 1 delivery
+
+	sim->unregister_stimulus_listener(listener_rid);
+}
+
+TEST_CASE("[Modules][SimServer] stimulus log prunes by retention") {
+	SimServer *sim = SimServer::get_singleton();
+	sim->restore_time_state(Dictionary());
+
+	// Retention is 10 ticks. Emit at tick 0.
+	sim->emit_stimulus("sound", Vector3(0, 0, 0), 1.0f, Dictionary(), Dictionary());
+
+	// Advance past retention window.
+	sim->advance_ticks(15);
+
+ 	// Query should not find stale stimuli.
+ 	Array results = sim->query_stimulus(Vector3(0, 0, 0), 100.0f, Array(), 0);
+ 	CHECK(results.size() == 0);
+ }
+
+ } // namespace SimTest

@@ -112,9 +112,9 @@ jobs:
           name: windows-editor
           path: bin/
           exclude: |
-            bin/build_deps/**
-            bin/*.exp
-            bin/*.lib
+            build_deps/**
+            *.exp
+            *.lib
 
   windows-templates:
     name: "Windows templates"

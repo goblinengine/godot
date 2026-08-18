@@ -110,11 +110,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-editor
-          path: bin/
-          exclude: |
-            build_deps/**
-            *.exp
-            *.lib
+          path: |
+            bin/goblin.windows.*.exe
+            bin/*.dll
 
   windows-templates:
     name: "Windows templates"

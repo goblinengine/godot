@@ -1,0 +1,11 @@
+GDTEST_ANALYZER_ERROR
+>> ERROR at line 3: Cannot assign a value of type "String" to a dictionary key typed "int".
+>> ERROR at line 4: Cannot assign a value of type "int" to a dictionary key typed "String".
+>> ERROR at line 5: Cannot assign a value of type "Vector2" to a dictionary key typed "int | String".
+>> ERROR at line 6: Cannot assign a value of type "int" to a dictionary key typed "String".
+>> ERROR at line 11: Cannot assign a value of type "String" as "int".
+>> ERROR at line 11: Value of type "String" cannot be assigned to a variable of type "int".
+>> ERROR at line 16: Cannot assign a value of type "int" as "String".
+>> ERROR at line 16: Value of type "int" cannot be assigned to a variable of type "String".
+>> ERROR at line 18: Cannot assign a value of type "String" as "int".
+>> ERROR at line 18: Value of type "String" cannot be assigned to a variable of type "int".

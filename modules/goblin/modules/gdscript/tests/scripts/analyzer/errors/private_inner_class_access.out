@@ -1,0 +1,2 @@
+GDTEST_ANALYZER_ERROR
+>> ERROR at line 4: Cannot access private member "PrivateInner" of class "private_inner_helper.notest.gd::HelperOuter".

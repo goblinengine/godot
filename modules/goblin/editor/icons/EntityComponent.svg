@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <!-- EntityComponent class icon: component tile with a pin up to its parent entity. -->
+  <g fill="#f6a54a" fill-rule="evenodd">
+    <path opacity=".18" d="M4 5h8a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/>
+    <path d="M4 6h8a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1Zm0 1v5h8V7H4Z"/>
+    <path d="M8 2v3l1.2-1.2h-2.4L8 5Z" opacity=".9"/>
+    <circle cx="8" cy="9.5" r="1.4"/>
+  </g>
+</svg>

@@ -1,0 +1,2 @@
+GDTEST_PARSER_ERROR
+Typed dictionary entries (e.g. "key: Type = value") are only allowed in Lua-style dictionaries (e.g. "{ key = value }").

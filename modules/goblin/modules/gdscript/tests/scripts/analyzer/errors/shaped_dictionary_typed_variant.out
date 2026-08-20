@@ -1,0 +1,5 @@
+GDTEST_ANALYZER_ERROR
+>> ERROR at line 6: Cannot assign a value of type "String" as "int".
+>> ERROR at line 6: Value of type "String" cannot be assigned to a variable of type "int".
+>> ERROR at line 7: Cannot assign a value of type "float" as "Array[int]".
+>> ERROR at line 7: Value of type "float" cannot be assigned to a variable of type "Array[int]".

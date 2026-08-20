@@ -1,0 +1,2 @@
+GDTEST_ANALYZER_ERROR
+>> ERROR at line 4: Cannot use type "Dictionary" as a value. Indexing a type is only allowed in a type annotation.

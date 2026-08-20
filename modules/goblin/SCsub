@@ -1,0 +1,89 @@
+#!/usr/bin/env python
+from misc.utility.scons_hints import *
+
+import os
+import goblin_builders
+import methods
+
+Import("env")
+
+# Create goblin environment (clone from main env)
+env_goblin = env.Clone()
+env_goblin.goblin_sources = []
+
+goblin_module_path = Dir(".").abspath
+
+# ===================================================================
+# REBRANDING APPROACH - BUILDER MONKEY-PATCHING
+# The builders are replaced in config.py before core/main SCsub runs.
+# This SCsub just needs to build our custom goblin classes.
+# ===================================================================
+
+# Export environment for sub-SCsubs
+Export("env_goblin")
+
+# Build subdirectories (mirrors Godot's structure)
+if os.path.exists(goblin_module_path + "/core/SCsub"):
+    SConscript("core/SCsub")
+
+# Editor splash: upstream 4.7 removed it. config.py dropped NO_EDITOR_SPLASH;
+# generate the gen header here from the goblin splash_editor.png so main.cpp
+# picks it up (main/SCsub skips its own command since no_editor_splash stays True).
+if env.editor_build:
+    _splash_editor_png = goblin_module_path + "/main/splash_editor.png"
+    if os.path.exists(_splash_editor_png):
+        env_goblin.CommandNoCache(
+            "#main/splash_editor.gen.h",
+            _splash_editor_png,
+            env_goblin.Run(goblin_builders.goblin_splash_editor_builder),
+        )
+
+# Build branding sources even for export templates.
+# The C++ code itself gates editor-only behavior with TOOLS_ENABLED.
+if os.path.exists(goblin_module_path + "/editor/SCsub"):
+    SConscript("editor/SCsub")
+
+# Add module registration
+env_goblin.add_source_files(env_goblin.goblin_sources, "*.cpp")
+
+# Add all goblin sources to main modules sources
+env.modules_sources += env_goblin.goblin_sources
+
+# ===================================================================
+# SOURCE OVERRIDE SYSTEM — Full Module Replacement
+# modules/goblin/modules/<name>/ mirrors Godot's source tree.
+# When a goblin-owned copy exists, redirect the module build to it.
+# The configure phase still runs on the original (for registration),
+# but SCsub compiles our modified sources.
+# ===================================================================
+import os as _os
+
+GOBLIN_MODULE_OVERRIDES = {
+    "gdscript": _os.path.join(goblin_module_path, "modules", "gdscript"),
+}
+
+for _mod_name, _goblin_path in GOBLIN_MODULE_OVERRIDES.items():
+    if _os.path.isdir(_goblin_path) and _mod_name in env.module_list:
+        env.module_list[_mod_name] = _os.path.abspath(_goblin_path).replace("\\", "/")
+        print(f"Goblin: Overriding module '{_mod_name}' -> {env.module_list[_mod_name]}")
+
+# Core file overrides are handled in config.py via the add_library hook.
+# See goblin_add_library() in config.py.
+
+# ===================================================================
+# CUT UPSCALER SHADER — goblin-owned GLES3 shader compiled with the
+# upstream GLES3_GLSL builder (gles3_builders.py). The .gen.h lands
+# in-tree next to the source and is committed (same as the upstream
+# shaders). The include files (_inc.glsl) are byte-identical MIT copies
+# of the upstream ones, so the builder can inline them relative to the
+# goblin tree.
+# ===================================================================
+if "GLES3_GLSL" in env_goblin["BUILDERS"]:
+    import glob as _glob
+
+    _goblin_glsl_dir = os.path.join(goblin_module_path, "drivers", "gles3", "shaders")
+    _cut_inc_files = [str(f) for f in _glob.glob(os.path.join(_goblin_glsl_dir, "*_inc.glsl"))]
+    _cut_gen = env_goblin.GLES3_GLSL("drivers/gles3/shaders/effects/cut.glsl")
+    env_goblin.Depends(_cut_gen, _cut_inc_files + ["#gles3_builders.py"])
+
+print("Goblin Engine: Complete rebranding applied")

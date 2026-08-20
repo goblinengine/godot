@@ -1,0 +1,2 @@
+GDTEST_RUNTIME_ERROR
+>> SCRIPT ERROR at runtime/errors/shaped_dictionary_runtime_validation_untyped.gd:3 on test(): Invalid value of type "String" for shaped dictionary key "x".

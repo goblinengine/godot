@@ -1,0 +1,4 @@
+GDTEST_ANALYZER_ERROR
+>> ERROR at line 5: Cannot access private member "private_var" of class "private_access_helper.notest.gd::HelperClass".
+>> ERROR at line 6: Cannot access private member "PRIVATE_CONST" of class "private_access_helper.notest.gd::HelperClass".
+>> ERROR at line 7: Cannot access private member "private_func" of class "private_access_helper.notest.gd::HelperClass".

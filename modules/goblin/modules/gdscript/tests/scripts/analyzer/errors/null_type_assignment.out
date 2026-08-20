@@ -1,0 +1,4 @@
+GDTEST_ANALYZER_ERROR
+>> ERROR at line 3: Cannot assign a value of type "int" as "null".
+>> ERROR at line 3: Value of type "int" cannot be assigned to a variable of type "null".
+>> ERROR at line 5: Value of type "int" cannot be assigned to a variable of type "null".

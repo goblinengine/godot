@@ -1,0 +1,34 @@
+# Build artifacts
+*.o
+*.obj
+*.pyc
+__pycache__/
+
+# Editor temporary files
+*.swp
+*.swo
+*~
+.DS_Store
+
+# SCons files
+.sconsign.dblite
+.scons_cache/
+
+# IDE files
+.vscode/
+.idea/
+*.sublime-*
+
+# Compiled binaries (if built in module dir)
+*.exe
+*.dll
+*.so
+*.dylib
+*.a
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.bak

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <!-- Transform3DComponent class icon: mini transform gizmo (axis colors). -->
+  <g stroke-width="1.4" stroke-linecap="round">
+    <path d="M4 12 12 4" stroke="#e05a5a"/>
+    <path d="M8 13V3" stroke="#69c46a"/>
+    <circle cx="8" cy="8" r="1.7" fill="#5a87e0" stroke="none"/>
+  </g>
+</svg>

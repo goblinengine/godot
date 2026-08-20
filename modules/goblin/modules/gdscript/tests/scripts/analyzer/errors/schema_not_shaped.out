@@ -1,0 +1,2 @@
+GDTEST_ANALYZER_ERROR
+>> ERROR at line 1: "@schema" constants must be shaped dictionary literals (e.g. "{ key: Type = value }").

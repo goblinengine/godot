@@ -5,7 +5,7 @@ Fork of Godot 4.7.x. Overrides and branding live inside `modules/goblin/`, injec
 ## Hard Rules
 
 1. NEVER clean `bin/`: no `scons -c`, no `Remove-Item bin/`, keep `.sconsign*` + `.scons_env.json`. Build cache never cleared.
-2. NEVER modify outside `modules/goblin/` without explicit permission. Seem to need upstream edits? STOP, propose override. Exception: new additive feature modules in `modules/<name>/` (ADR 0008) — self-contained, no upstream file touched.
+2. NEVER modify outside `modules/goblin/` without explicit permission. Seem to need upstream edits? STOP, propose override. Exceptions: new additive feature modules in `modules/<name>/` (ADR 0008) — self-contained, no upstream file touched; fork documentation at root `docs/` (ADR 0014).
 3. NEVER disable modules / change build flags without permission. `DISABLE_MODULES` + build command fixed.
 4. Core file overrides only via `goblin_add_library()` in `modules/goblin/config.py`. No other hacks.
 
@@ -44,17 +44,17 @@ Procedures: load `overrides` skill.
 - `scons -c` / cleaned bin/? -> violation. Stop.
 - Wrong mechanism (module copy for 1 file)? -> use core swap.
 - Mirrored file drifted from upstream without port note? -> sync (`porting` skill).
-- Architecture/feature changed but `modules/goblin/docs/` stale? -> update docs (`CODE_MAP.md`, `gdscript_features.md`).
+- Architecture/feature changed but `docs/` stale? -> update docs (`CODE_MAP.md`, `gdscript_features.md`).
 - Locked decision changes a principle/hierarchy/non-negotiable but `.kilo/rules/master_prompt.md` not updated? -> update it (living charter, architect maintains).
 - Work not reflected in `backlog.md` (new/done/rejected)? -> update backlog.
 
 ## Orientation
 
 - Vision + decision hierarchy: `.kilo/rules/master_prompt.md`.
-- Tickets: `modules/goblin/docs/backlog.md` - check before starting work, update after (new/done/rejected). Detailed specs in `modules/goblin/docs/plans/`.
-- Code map: `modules/goblin/docs/CODE_MAP.md` - read before implementing, update after.
+- Tickets: `docs/backlog.md` - check before starting work, update after (new/done/rejected). Detailed specs in `docs/plans/`.
+- Code map: `docs/CODE_MAP.md` - read before implementing, update after.
 - Build + verify: `build` skill.
 - Port upstream: `porting` skill.
 - Workflows: `/report` (status), `/feature-review` (implementation review), `/tech-debt-review` (debt scan).
-- Docs: `modules/goblin/docs/`, `modules/goblin/INDEX.md`.
+- Docs: `docs/`, `modules/goblin/INDEX.md`.
 - Goblin copy = source of truth. Read it, not this file.

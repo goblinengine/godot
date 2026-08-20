@@ -8,7 +8,7 @@ Generate a terse status report for Goblin Engine.
 
 ## Steps
 
-1. Read `modules/goblin/docs/backlog.md`. Summarize per section: counts per status (`done` / `doing` / `todo` / `rejected`). List all `doing` items + all `P0`/`P1` `todo` items.
+1. Read `docs/backlog.md`. Summarize per section: counts per status (`done` / `doing` / `todo` / `rejected`). List all `doing` items + all `P0`/`P1` `todo` items.
 2. Recent changes: `git log --oneline -20 -- modules/goblin/ .kilo/` (or since `$1` if a date/range is given). Summarize what landed.
 3. Build state: compare `bin/goblin.windows.editor.x86_64.exe` LastWriteTime against newest source mtime under `modules/goblin/`. Binary older than source edits? Say "stale build".
 4. Blockers / risks: from backlog notes, `blocked` items, upstream issues referenced.

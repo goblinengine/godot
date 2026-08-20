@@ -50,6 +50,9 @@ Promote an RFC to an ADR when direction and boundary are both stable enough to f
 11. [0013-inline-goblin-into-main-repo.md](0013-inline-goblin-into-main-repo.md)
    De-submodule: `modules/goblin` becomes a plain tracked directory (history grafted via `git subtree add`, `ecs` branch folded into the tree); the override layer's home is a path, not a repository boundary.
 
+12. [0014-fork-docs-at-repo-root.md](0014-fork-docs-at-repo-root.md)
+   Fork documentation moves from `modules/goblin/docs/` to the repo-root `docs/`; `modules/goblin/` keeps only the override layer + branding. `rules.md` hard rule 2 gains a `docs/` exception.
+
 ## Not Yet ADRs
 
 The following remain at RFC level intentionally:

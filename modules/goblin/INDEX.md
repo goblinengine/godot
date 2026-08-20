@@ -4,17 +4,17 @@ Goblin Engine is a deliberately customized, lightweight fork of Godot Engine, ta
 
 ## Documentation
 
-The canonical docs live in [docs/](docs/). Start at [docs/README.md](docs/README.md).
+The canonical docs live at the repo root in [docs/](../docs/). Start at [docs/README.md](../docs/README.md).
 
 | Document | Purpose |
 |----------|---------|
-| [docs/backlog.md](docs/backlog.md) | Single source of truth for pending, in-progress, and proposed work |
-| [docs/ROADMAP.md](docs/ROADMAP.md) | Phased roadmap, pain-point → solution map, risk assessment |
-| [docs/gdscript_features.md](docs/gdscript_features.md) | GDScript fork features and divergence surface |
-| [docs/CODE_MAP.md](docs/CODE_MAP.md) | Navigation map: where files live, what each layer does, where new code goes |
-| [docs/adr/](docs/adr/) | Architecture Decision Records (accepted + proposed) |
-| [docs/rfc/](docs/rfc/) | RFCs for exploratory designs |
-| [docs/plans/](docs/plans/) | Implementation breakdowns: locked semantics, phases, files, effort, test gates |
+| [docs/backlog.md](../docs/backlog.md) | Single source of truth for pending, in-progress, and proposed work |
+| [docs/ROADMAP.md](../docs/ROADMAP.md) | Phased roadmap, pain-point → solution map, risk assessment |
+| [docs/gdscript_features.md](../docs/gdscript_features.md) | GDScript fork features and divergence surface |
+| [docs/CODE_MAP.md](../docs/CODE_MAP.md) | Navigation map: where files live, what each layer does, where new code goes |
+| [docs/adr/](../docs/adr/) | Architecture Decision Records (accepted + proposed) |
+| [docs/rfc/](../docs/rfc/) | RFCs for exploratory designs |
+| [docs/plans/](../docs/plans/) | Implementation breakdowns: locked semantics, phases, files, effort, test gates |
 
 ## Module Layout
 
@@ -37,7 +37,6 @@ modules/goblin/
 ├── main/                        # Splash / app icon overrides
 ├── platform/windows/            # Platform overrides
 ├── tools/                       # Utility scripts
-└── docs/                        # All documentation (see above)
 ```
 
 ## Override Mechanisms

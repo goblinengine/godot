@@ -1,8 +1,8 @@
-# Goblin Engine — SimServer RFC (Systemic / Immersive Sim Server)
+# Goblin Engine â€” SimServer RFC (Systemic / Immersive Sim Server)
 
-- **Proposal file:** `modules/goblin/docs/rfc/simserver-rfc.md`
+- **Proposal file:** `docs/rfc/simserver-rfc.md`
 - **Date:** 2026-08-16
-- **Status:** Proposed — direction agreed 2026-08-16; awaiting architect review before backlog rows are implemented
+- **Status:** Proposed â€” direction agreed 2026-08-16; awaiting architect review before backlog rows are implemented
 - **Base:** Godot 4.7.1-stable, fork plan v0.2.0
 - **Mechanism:** Additive feature module (ADR 0008), zero overrides, zero upstream edits
 
@@ -12,21 +12,21 @@
 
 One server-side home for the systemic / immersive-sim layer of the fork. The charter promises
 *"systemic out of the box: interaction, events/stimulus, ambient perception fields (light/acoustics),
-cadence scheduling, timers — engine-supported"*. Today those capabilities are scattered or absent:
+cadence scheduling, timers â€” engine-supported"*. Today those capabilities are scattered or absent:
 
-- cadence scheduling / tick queue — scripted in the reference title (title scheduler script), no engine item
-- events/stimulus — no engine item (witness search is O(N) GDScript queries)
-- ambient perception fields — C-05/M-07/M-08 at P2, not started
-- audio occlusion — C-06 at P2, not started
-- surface metadata for hits/impacts — M-09 at P3, scripted in the title (4 static caches + collider walks)
-- interaction — scripted in the title, no engine substrate
+- cadence scheduling / tick queue â€” scripted in the reference title (title scheduler script), no engine item
+- events/stimulus â€” no engine item (witness search is O(N) GDScript queries)
+- ambient perception fields â€” C-05/M-07/M-08 at P2, not started
+- audio occlusion â€” C-06 at P2, not started
+- surface metadata for hits/impacts â€” M-09 at P3, scripted in the title (4 static caches + collider walks)
+- interaction â€” scripted in the title, no engine substrate
 
 `SimServer` consolidates these into one additive module with one API surface, following Godot's
 own server pattern (`PhysicsServer3D`, `NavigationServer3D`): RID-based data, scene-tree-independent,
 consuming other servers for queries. It is the native consolidation of patterns the reference title
-already proves in GDScript — not a speculative architecture.
+already proves in GDScript â€” not a speculative architecture.
 
-## 2. Context — evidence from the reference title
+## 2. Context â€” evidence from the reference title
 
 The title's scripts (read 2026-08-15) implement exactly this layer by hand:
 
@@ -36,10 +36,10 @@ The title's scripts (read 2026-08-15) implement exactly this layer by hand:
 | title physics surface resolution | surface type from material/texture, absorption, level-hit decoration | 4 static caches, up to 4-hop collider walks, per-hit, in combat hot path |
 | title witness search (physics helper) | stimulus delivery: short-range OR LOS-within-sight, faction filter | O(N) shape query + per-witness raycast, GDScript |
 | title interaction script | verb dispatch (USE/HIT), rule gates, lock/key | generic focus/target resolution mixed with game policy |
-| viewport-based light sensor | light readout for stealth | explicitly "not scalable" (ROADMAP §9) |
+| viewport-based light sensor | light readout for stealth | explicitly "not scalable" (ROADMAP Â§9) |
 
 `SimServer` makes these engine-native and cross-feeding: a stimulus sound resolves surface
-properties, which feeds the acoustic field, which selects the effect, which reads the light field —
+properties, which feeds the acoustic field, which selects the effect, which reads the light field â€”
 all inside one server with a defined data-flow order.
 
 ## 3. Architecture
@@ -51,26 +51,26 @@ all inside one server with a defined data-flow order.
   `doc_classes/`, `tests/`, `editor/icons/`. Zero overrides; nothing outside `modules/sim/` touched.
 - `SimServer` singleton registered like `JoltPhysicsServer3D` (module-provided server precedent):
   `Object` singleton, own `RID_Alloc` owner, own data maps.
-- RID-space only: subsystems hold `RID → data`; nodes/scripts opt in by registering RIDs.
-  SimServer never walks the SceneTree and never requires it — headless-capable.
+- RID-space only: subsystems hold `RID â†’ data`; nodes/scripts opt in by registering RIDs.
+  SimServer never walks the SceneTree and never requires it â€” headless-capable.
 - Consumes other servers: `PhysicsServer3D` (ray/shape/space queries), `RenderingServer` (as needed
-  for visuals), `AudioServer` (as needed for occlusion data consumption — mixer stays upstream).
-- **SceneTree replacement is explicitly out of scope and orthogonal** (see §10). SimServer is
+  for visuals), `AudioServer` (as needed for occlusion data consumption â€” mixer stays upstream).
+- **SceneTree replacement is explicitly out of scope and orthogonal** (see Â§10). SimServer is
   RID-space data + services; the tree remains the presentation/lifecycle layer.
 
 ### 3.2 The cadence pipeline (determinism rule)
 
 All cross-subsystem data flow runs through a fixed per-tick order. No subsystem reads another
-outside its phase — this is what makes "everything feeds everything" deterministic:
+outside its phase â€” this is what makes "everything feeds everything" deterministic:
 
 ```
 pre_tick   emissions enter: emit_stimulus, surface queries, interaction verbs, hits
-sim_tick   resolution: stimulus → surface resolve → field sampling → acoustics
+sim_tick   resolution: stimulus â†’ surface resolve â†’ field sampling â†’ acoustics
 post_tick  propagation: subscriber delivery, effects, stealth readout update
 ```
 
 - Authoritative tick owned by SimServer (`get_tick()`); `advance_ticks(n)` fast path for
-  time-skip/offline simulation (skips nothing server-side — the fast path exists for visual cadences).
+  time-skip/offline simulation (skips nothing server-side â€” the fast path exists for visual cadences).
 - Cadence groups register with a rate; handlers run at their cadence inside the tick order.
 - Tick order is fixed (phase + registration order), so simulation is reproducible for a given seed.
 
@@ -83,9 +83,9 @@ post_tick  propagation: subscriber delivery, effects, stealth readout update
 
 ## 4. Subsystems (phases)
 
-### S-01 — Clock & cadence + stimulus bus
+### S-01 â€” Clock & cadence + stimulus bus
 
-**Clock/cadence API (replaces the standalone `SimClock` idea — no separate class):**
+**Clock/cadence API (replaces the standalone `SimClock` idea â€” no separate class):**
 
 ```
 SimServer.get_tick() -> int
@@ -112,14 +112,14 @@ SimServer.unregister_stimulus_listener(rid)
 SimServer.query_stimulus(position, radius, types, since_tick) -> Array  # pull mode
 ```
 
-- Spatial index (uniform grid, sized to level scale) — delivery is O(nearby), not O(world).
+- Spatial index (uniform grid, sized to level scale) â€” delivery is O(nearby), not O(world).
 - Push delivery happens at post_tick on the listener's cadence; pull queries read the tick-tagged log.
 - witness-search semantics (short-range OR LOS-within-sight, faction filter) become query options.
 
 **Gates:** title scheduler-script semantics reproduced: same tick math, same save/restore payload shape,
 same tag/cancel/repeat behavior. Corpus + 342 tests + level load unchanged.
 
-### S-02 — Surface registry & query
+### S-02 â€” Surface registry & query
 
 ```
 SurfaceProperties : Resource            # module class, editor-assignable
@@ -128,33 +128,33 @@ SurfaceProperties : Resource            # module class, editor-assignable
   penetration: float
   absorption: float
   decal: StringName
-  physics_material: PhysicsMaterial     # OPTIONAL reference — physics response stays core
+  physics_material: PhysicsMaterial     # OPTIONAL reference â€” physics response stays core
 SimServer.set_surface_properties(rid_or_node, res)     # explicit assignment
 SimServer.query_surface(from, to, opts) -> Dictionary  # wraps intersect_ray, decorates result
 ```
 
 Query result = existing ray dict + `surface`, `surface_properties`, `impact_uv`, `material_name`.
-Resolution chain (verified against title code): level-hit metadata → explicit RID assignment →
-material-name table fallback (the title's current model) → default.
+Resolution chain (verified against title code): level-hit metadata â†’ explicit RID assignment â†’
+material-name table fallback (the title's current model) â†’ default.
 
 - **Impact UV**: Godot's `intersect_ray` returns `face_index` but no UV; module-side barycentric
-  interpolation over the hit triangle (~50 lines C++, pure math over mesh arrays — no core change).
+  interpolation over the hit triangle (~50 lines C++, pure math over mesh arrays â€” no core change).
 - **PhysicsMaterial stays core and untouched.** PhysicsServer owns friction/bounce as floats;
   `SurfaceProperties.physics_material` is a read reference merged into the query record. Two layers,
-  one merged read — resolves the "PhysicsMaterial vs SurfaceProperties" conflict without core edits.
+  one merged read â€” resolves the "PhysicsMaterial vs SurfaceProperties" conflict without core edits.
 - Kills the title's 4 static caches + collider-hierarchy walks (`_get_material_from_ray_hit` etc.).
 
 **Gates:** query returns correct UV/material/surface for: mesh-instance hits, level-geometry hits,
 bodies with explicit assignment, bodies with no assignment (fallback chain). Same dict keys the
 title reads today (`surface_type`, `absorption`, `position`, `normal`, ...) so call sites keep working.
 
-### S-03 — Ambient field (light + acoustics) + stealth readout
+### S-03 â€” Ambient field (light + acoustics) + stealth readout
 
 ```
 SimServer.field_create(aabb, cell_size, channels) -> RID          # light channel v1
 SimServer.field_bake(rid, budget_per_frame)                       # async, WorkerThreadPool
 SimServer.get_field_sample(rid, pos, channel) -> Variant          # trilinear, cheap
-SimServer.invalidate_region(rid, aabb)                            # dynamic patch → budgeted rebake
+SimServer.invalidate_region(rid, aabb)                            # dynamic patch â†’ budgeted rebake
 SimServer.field_set_dynamic_source(rid, source_rid, energy, ...)  # torch on/off etc.
 SimServer.get_stealth_value(pos, subject) -> float                # M-08 consumer API
 ```
@@ -162,19 +162,19 @@ SimServer.get_stealth_value(pos, subject) -> float                # M-08 consume
 - **Field bake is independent of lightmap baking.** Lightmaps = surface lighting (C-02);
   the field = ambient data at points (exposure, occlusion) via CPU hemisphere sampling against
   physics geometry + the light list. Works in scenes with zero lightmaps. Static bake per level/region.
-- **Dynamic updates** = region invalidation → budgeted async rebake (torch-out scenario).
+- **Dynamic updates** = region invalidation â†’ budgeted async rebake (torch-out scenario).
   No force-immediate path.
 - **Acoustics channel later**: environment/reverb zones from the field; per-source audio occlusion
   (C-06) becomes: runtime raycasts cached at cadence (Hz rate, not per-frame) + field acoustic
-  channel. C-06 folds here — node-layer bus routing stays script-side.
+  channel. C-06 folds here â€” node-layer bus routing stays script-side.
 - Channels are typed grids on the same mechanism (v1 = light only; no speculative channels).
-- Stealth readout = consumer API over the light channel (direct + occlusion + ambient) —
+- Stealth readout = consumer API over the light channel (direct + occlusion + ambient) â€”
   the "gameplay readout, not HUD" contract (M-08).
 
-**Gates:** synthetic room: light exposure analytic match, occlusion boundary, torch-out → rebake
+**Gates:** synthetic room: light exposure analytic match, occlusion boundary, torch-out â†’ rebake
 within N frames under budget, sample determinism for a seed.
 
-### S-04 — Interaction substrate (post-field, optional in v1)
+### S-04 â€” Interaction substrate (post-field, optional in v1)
 
 ```
 Interactable3D : Node3D   # verbs, prompt data, interact(data) contract
@@ -185,22 +185,22 @@ Engine ships the generic layer only (target resolution, candidate priority, occl
 Rule gates / lock-key / difficulty / HUD stay game script (policy). Formalizes the title's
 duck-typed `has_method("interact")` contract.
 
-### S-05 — Combat integration
+### S-05 â€” Combat integration
 
 Combat subsystem (C-14, co-located in `modules/sim/`, moved 2026-08-17) gains optional SimServer hooks: `Hitbox3D` hits
 emit `stimulus` (impact events), `Projectile3D` resolves `query_surface` for surface-specific
-impact effects/sounds. Co-located in `modules/sim/` — hooks are internal C++ calls, no cross-module coupling.
+impact effects/sounds. Co-located in `modules/sim/` â€” hooks are internal C++ calls, no cross-module coupling.
 
 ## 5. In / Out guardrails
 
 **In (systemic/immersive, cross-cutting, world-data):**
-clock/cadence · stimulus bus · surface registry + query · ambient field (light/acoustic channels)
-· stealth readout · interaction focus query (S-04).
+clock/cadence Â· stimulus bus Â· surface registry + query Â· ambient field (light/acoustic channels)
+Â· stealth readout Â· interaction focus query (S-04).
 
 **Out (honest boundaries):**
-physics simulation (PhysicsServer owns; SimServer only queries) · audio mixing/positioning
-(AudioServer owns; SimServer supplies occlusion *data*) · rendering · input · UI prompts ·
-save-file format · game rules/policy · scene lifecycle (SceneTree stays).
+physics simulation (PhysicsServer owns; SimServer only queries) Â· audio mixing/positioning
+(AudioServer owns; SimServer supplies occlusion *data*) Â· rendering Â· input Â· UI prompts Â·
+save-file format Â· game rules/policy Â· scene lifecycle (SceneTree stays).
 
 **Rule of thumb:** if it is presentation or policy, it stays outside; if it is world-data that two
 or more subsystems read, it lives inside.
@@ -208,26 +208,26 @@ or more subsystems read, it lives inside.
 ## 6. Naming
 
 - Server: `SimServer` (Godot `*Server` convention; module-owned singleton per Jolt precedent).
-- No separate clock class — clock is SimServer API (`get_tick`, `schedule_at_tick`,
+- No separate clock class â€” clock is SimServer API (`get_tick`, `schedule_at_tick`,
   `register_cadence`). `SimClock`/`GameClock`/`TickScheduler`/`CadenceScheduler` all rejected.
-- `SurfaceProperties` (not `MaterialProperties` — "Material" collides with the Godot Material class
+- `SurfaceProperties` (not `MaterialProperties` â€” "Material" collides with the Godot Material class
   family in docs/autocomplete). `query_surface` (dict-compatible result; typed `SurfaceHit3D`
   accessor deferred unless autocomplete needs it).
 - Field API uses `field_*` prefix (`field_create`, `field_bake`, `get_field_sample`).
-  `FieldServer` rejected — the field is a SimServer subsystem, not a second server.
+  `FieldServer` rejected â€” the field is a SimServer subsystem, not a second server.
 
 ## 7. Effort & phases
 
 | Phase | Ships | Effort | Depends |
 |---|---|---|---|
-| S-01 | Clock/cadence + stimulus bus | 1–2 w | — |
-| S-02 | Surface registry + query (incl. impact UV) | 3–5 d | S-01 (tick timing) |
-| S-03 | Ambient field v1 (light channel) + stealth readout | 2–3 w | S-01 |
-| S-04 | Interaction substrate | 3–5 d | S-02 (focus ray resolution) |
+| S-01 | Clock/cadence + stimulus bus | 1â€“2 w | â€” |
+| S-02 | Surface registry + query (incl. impact UV) | 3â€“5 d | S-01 (tick timing) |
+| S-03 | Ambient field v1 (light channel) + stealth readout | 2â€“3 w | S-01 |
+| S-04 | Interaction substrate | 3â€“5 d | S-02 (focus ray resolution) |
 | S-05 | Combat integration hooks | ~1 w | S-01/S-02 + C-14 |
 
-**Total ~5–8 w.** S-01 + S-02 deliver the two highest-pain migrations first (scheduler script,
-surface-resolution path). Suggested order: S-01 → S-02 → S-03 (light channel) → S-04 → S-05.
+**Total ~5â€“8 w.** S-01 + S-02 deliver the two highest-pain migrations first (scheduler script,
+surface-resolution path). Suggested order: S-01 â†’ S-02 â†’ S-03 (light channel) â†’ S-04 â†’ S-05.
 
 ## 8. Test gates
 
@@ -242,17 +242,17 @@ surface-resolution path). Suggested order: S-01 → S-02 → S-03 (light channel
 
 | Risk | Mitigation |
 |---|---|
-| Scope creep ("everything in SimServer") | §5 guardrails + rule of thumb; phase review at each milestone |
-| Cross-subsystem ordering bugs | Fixed cadence pipeline (§3.2); tests assert phase order |
+| Scope creep ("everything in SimServer") | Â§5 guardrails + rule of thumb; phase review at each milestone |
+| Cross-subsystem ordering bugs | Fixed cadence pipeline (Â§3.2); tests assert phase order |
 | RID lifecycle leaks (dangling refs) | `RID_Alloc` owner + explicit `free()` on unregister; tests for unregister paths |
 | Worker-thread bake races | Main-thread-owned state; workers only fill pre-allocated buffers |
 | Title migration breaks existing scripts | Dict-compatible results (S-02), API 1:1 with the scheduler script (S-01); migration is opt-in per call site |
 
-## 10. Out of scope — SceneTree replacement (separate track)
+## 10. Out of scope â€” SceneTree replacement (separate track)
 
 SceneTree replacement is a **separate track, deliberately not part of this RFC**: SimServer is
 RID-space and orthogonal to the tree. Direction locked 2026-08-16: `FastSceneTree : public MainLoop`
-— a full re-implementation (spec in `fast-scene-tree-rfc.md` + `plans/fast-scene-tree-plan.md`,
+â€” a full re-implementation (spec in `fast-scene-tree-rfc.md` + `plans/fast-scene-tree-plan.md`,
 backlog M-14). The EntityNode/EntityComponent flat-data stage is a further, deferred RFC
 (`entity-node-rfc.md`) riding on the tree's stable-iteration hooks. SimServer and the tree track
 stay independent; the cadence pipeline (S-01) may later consume the tree's `register_cadence`
@@ -260,15 +260,15 @@ stay independent; the cadence pipeline (S-01) may later consume the tree's `regi
 
 ## 11. Open questions (decide at plan time)
 
-1. Grid cell size / index policy for stimulus + field — fixed per level or adaptive?
+1. Grid cell size / index policy for stimulus + field â€” fixed per level or adaptive?
 2. Does S-03 light channel sample dynamic lights (baked static + per-tick dynamic reads) in v1?
 3. Save/restore scope: which SimServer state persists in the title's delta save/load (tick yes,
    schedule yes, field samples no)?
-4. `query_surface` return: plain dict (title-compatible) vs typed object — dict in v1, revisit
+4. `query_surface` return: plain dict (title-compatible) vs typed object â€” dict in v1, revisit
    when structs (G-07) land.
 
 ## 12. Backlog mapping
 
-Supersedes/folds: C-05, C-06, M-07, M-08, M-09 → S-01/S-02/S-03 (statuses updated in backlog.md).
+Supersedes/folds: C-05, C-06, M-07, M-08, M-09 â†’ S-01/S-02/S-03 (statuses updated in backlog.md).
 C-14 (combat subsystem) co-located in `modules/sim/` (moved 2026-08-17); S-05 adds integration hooks. Genre-coverage cluster 2
 (perception fields) now maps to S-01/S-03.

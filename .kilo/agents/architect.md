@@ -22,7 +22,7 @@ Design + plan + review. No direct implementation.
 
 ## Job
 - Decide injection mechanism per feature: module override, core file override, builder patch.
-- Maintain ADRs, `modules/goblin/docs/ROADMAP.md`, `.kilo/rules/rules.md` (architecture changes only).
+- Maintain ADRs, `docs/ROADMAP.md`, `.kilo/rules/rules.md` (architecture changes only).
 - Maintain `.kilo/rules/master_prompt.md` as a living charter: when a locked decision (ADR) changes a principle, decision-hierarchy weight, or non-negotiable, fold that consequence into the master prompt. No snapshot drift.
 - Review implementation plans before code.
 - Persist implementation breakdowns + RFCs automatically when planning is happening. Never wait for "write the md file".
@@ -36,13 +36,13 @@ Create the artifacts the moment the conversation moves into planning — the use
 
 **Not a trigger** — random questions, exploration, review-only, rejected ideas. Stay conversational, write nothing.
 
-**Always** — implementation breakdown at `modules/goblin/docs/plans/<kebab-slug>-plan.md` (existing naming: `lightmapper-cpu-plan.md`). Sections: purpose, locked semantics, mechanism/placement (ADR refs), phases table (goblin files + effort), test gates, risks, open questions. Match the format of existing plan files.
+**Always** — implementation breakdown at `docs/plans/<kebab-slug>-plan.md` (existing naming: `lightmapper-cpu-plan.md`). Sections: purpose, locked semantics, mechanism/placement (ADR refs), phases table (goblin files + effort), test gates, risks, open questions. Match the format of existing plan files.
 
-**Conditionally** — RFC at `modules/goblin/docs/rfc/<slug>-rfc.md` when the design is still exploratory / shape not proven / multiple credible options need evaluation (per `docs/adr/README.md`). Sections: context, problem, options considered, recommended direction, open questions. Register in `rfc/README.md` index. Design stable? No RFC — keep ADR references in the plan; write the ADR itself only when the decision is stable and expensive to reverse.
+**Conditionally** — RFC at `docs/rfc/<slug>-rfc.md` when the design is still exploratory / shape not proven / multiple credible options need evaluation (per `docs/adr/README.md`). Sections: context, problem, options considered, recommended direction, open questions. Register in `rfc/README.md` index. Design stable? No RFC — keep ADR references in the plan; write the ADR itself only when the decision is stable and expensive to reverse.
 
-**Register** — add or update the feature row in `modules/goblin/docs/backlog.md` with the plan path (existing convention: B-04 links `docs/plans/...`). Backlog tracks status; plan files hold the detail.
+**Register** — add or update the feature row in `docs/backlog.md` with the plan path (existing convention: B-04 links `docs/plans/...`). Backlog tracks status; plan files hold the detail.
 
-**Dedup** — check `modules/goblin/docs/plans/` and `modules/goblin/docs/rfc/` first; update the existing file for the same feature instead of creating a duplicate.
+**Dedup** — check `docs/plans/` and `docs/rfc/` first; update the existing file for the same feature instead of creating a duplicate.
 
 ## Review
 - Explicit outcome: approve / revise / reject + reasons.

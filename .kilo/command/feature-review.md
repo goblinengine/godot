@@ -12,7 +12,7 @@ Review the CURRENT implementation of a feature/area for potential issues: correc
 
 ## Steps
 
-1. Find the spec: `modules/goblin/docs/plans/` (if the feature has one), `docs/backlog.md` ticket, `docs/adr/` (structural), `docs/gdscript_features.md` (language features).
+1. Find the spec: `docs/plans/` (if the feature has one), `docs/backlog.md` ticket, `docs/adr/` (structural), `docs/gdscript_features.md` (language features).
 2. Identify implementation files: `docs/CODE_MAP.md` fast-lookup; diff vs upstream for language features (`git diff --no-index modules/gdscript modules/goblin/modules/gdscript`).
 3. Review against checks:
    - **Spec compliance**: locked semantics implemented exactly as documented?

@@ -19,7 +19,7 @@ Review recent changes to `modules/goblin/` for accumulating tech debt. Focus on 
    - Parallel systems / reinvented infrastructure (new tracking dicts, registries, loops where infrastructure exists)
    - Spaghetti: long functions, deep nesting, duplicated logic, pass-through wrappers
 3. Classify each finding:
-   - **FORK-DEBT** -> ours to fix. Add a row to `modules/goblin/docs/backlog.md` §6 (Tech Debt), ID `TD-NN`, following the table format.
+   - **FORK-DEBT** -> ours to fix. Add a row to `docs/backlog.md` §6 (Tech Debt), ID `TD-NN`, following the table format.
    - **UPSTREAM-ISSUE** -> Godot bug/limitation worked around. Do NOT fix, do NOT backlog. List in the report with the upstream reference (issue number / commit) so the user can decide whether it is critical.
 
 ## Output

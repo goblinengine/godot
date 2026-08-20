@@ -65,7 +65,7 @@ Each ADR must address:
 
 ### ADR Lifecycle
 
-1. **Proposal:** Draft ADR in `modules/goblin/docs/adr/`. Must include concrete evidence (reference-title code references, benchmark data, module dependency analysis).
+1. **Proposal:** Draft ADR in `docs/adr/`. Must include concrete evidence (reference-title code references, benchmark data, module dependency analysis).
 2. **Review:** Cross-check against existing ADRs for conflicts. Verify test gates are specific and measurable.
 3. **Acceptance:** Lock the ADR. Implementation begins only after acceptance.
 4. **Implementation:** Code changes live in `modules/goblin/overrides/`. Test suite gates the merge.

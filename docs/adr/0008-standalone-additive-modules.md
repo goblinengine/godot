@@ -21,6 +21,8 @@ The MIDI feature is at `modules/midi/` (2026-08-14): sources, `register_types.{h
 
 Future additive features follow the same rule: standalone module in `modules/`, never inside `modules/goblin/` unless it is override/branding work.
 
+> **Amended 2026-08-20 (ADR 0014):** fork documentation moved from `modules/goblin/docs/` to the repo root `docs/`. The sentence "`modules/goblin/` remains the home of override machinery, branding, and fork documentation only" is superseded: `modules/goblin/` is now override machinery + branding only; docs live at `docs/`.
+
 ## Consequences
 
 Positive:

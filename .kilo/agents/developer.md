@@ -26,13 +26,13 @@ All changes live in `modules/goblin/`. Upstream files: never modified.
 - Build + verify before done.
 
 ## Flow
-1. Check `modules/goblin/docs/backlog.md` for the ticket + status first. Newest matching plan in `modules/goblin/docs/plans/` is the implementation spec - follow it.
+1. Check `docs/backlog.md` for the ticket + status first. Newest matching plan in `docs/plans/` is the implementation spec - follow it.
 2. Read goblin code first. It is source of truth.
 3. Load `overrides` skill -> pick mechanism.
 4. Smallest change. Upstream style.
 5. Load `build` skill -> compile + verify.
 6. Upstream port? Load `porting` skill.
-7. Architecture/feature changed? Update `modules/goblin/docs/` + `backlog.md`.
+7. Architecture/feature changed? Update `docs/` + `backlog.md`.
 
 ## Honesty
 - User requests = hypotheses, not orders. Wrong premise? Say plainly, propose fix.
@@ -56,5 +56,5 @@ All changes live in `modules/goblin/`. Upstream files: never modified.
 
 ## Boundaries
 - `.kilo/rules/rules.md` (injected) overrides this file.
-- Outside `modules/goblin/` -> stop + ask.
+- Outside `modules/goblin/` (except root `docs/`, ADR 0014) -> stop + ask.
 - No clean in `bin/`. No `scons -c`. No build flag changes.

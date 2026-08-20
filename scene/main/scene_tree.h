@@ -41,6 +41,7 @@
 #include <cstdlib>
 
 class ArrayMesh;
+class EntityRegistry;
 class InputEvent;
 class Material;
 class MultiplayerAPI;
@@ -236,6 +237,10 @@ private:
 
 	static SceneTree *singleton;
 	friend class Node;
+	// Goblin Engine ECS seam (entity-node-plan.md §4.2, D-20).
+	friend class EntityNode;
+	friend class EntityComponent;
+	EntityRegistry *entity_registry = nullptr;
 
 	void tree_changed();
 	void node_added(Node *p_node);

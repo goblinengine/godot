@@ -41,6 +41,7 @@
 #include <cstdlib>
 
 class ArrayMesh;
+class EntityRegistry;
 class InputEvent;
 class Material;
 class MultiplayerAPI;
@@ -236,6 +237,12 @@ private:
 
 	static SceneTree *singleton;
 	friend class Node;
+	// Goblin Engine: EntityNode/EntityComponent (D-20) — the entity registry is
+	// SceneTree-owned; these classes reach it through this pointer (pointer
+	// only, ODR-safe: all TUs see the same header).
+	friend class EntityNode;
+	friend class EntityComponent;
+	EntityRegistry *entity_registry = nullptr;
 
 	void tree_changed();
 	void node_added(Node *p_node);

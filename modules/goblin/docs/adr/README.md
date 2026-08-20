@@ -47,6 +47,9 @@ Promote an RFC to an ADR when direction and boundary are both stable enough to f
 10. [0012-build-time-option-injection.md](0012-build-time-option-injection.md)
    4th override mechanism: module-level ARGUMENTS mutation in `modules/goblin/config.py` (import time, before `opts.Update`) sets `module_*_enabled=no` for the module trim gate — fixes B-01 (the trim was a silent no-op). User CLI wins; configure() canary print.
 
+11. [0013-inline-goblin-into-main-repo.md](0013-inline-goblin-into-main-repo.md)
+   De-submodule: `modules/goblin` becomes a plain tracked directory (history grafted via `git subtree add`, `ecs` branch folded into the tree); the override layer's home is a path, not a repository boundary.
+
 ## Not Yet ADRs
 
 The following remain at RFC level intentionally:

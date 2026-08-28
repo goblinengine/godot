@@ -10,6 +10,7 @@ Fork of Godot 4.7.x. Narrow, related genre set: FPS, RPG, Shooter, Boomer Shoote
 - Secondary: Low-Fi/Retro presentation.
 - Cross-cutting: make GDScript better overall - a first-class product, not a side effect.
 - A flagship reference title in the genre set is the first consumer. Concrete genre pain is the primary justification, but features must serve the set above.
+- Pipeline: the reference title (game, on vanilla + a GDExtension bridge) → this fork (long-term genre-set platform). Ideas flow forward (game → extension → fork); backported features flow back (fork → extension). The reference title migrates here at release 2. Secrecy: never name the reference title in repo docs or code.
 
 ## What "good" means
 
